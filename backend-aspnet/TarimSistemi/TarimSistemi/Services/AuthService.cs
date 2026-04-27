@@ -23,28 +23,35 @@ namespace TarimSistemi.Services
         // Kullanıcı Kayıt
         public async Task<(bool Success, string Message)> KayitOl(string adSoyad, string email, string sifre, string? telefon)
         {
-            // Email kontrol
-            if (await _context.Kullanicilar.AnyAsync(k => k.Email == email))
+            try
             {
-                return (false, "Bu email zaten kayıtlı");
+                // Email kontrol
+                if (await _context.Kullanicilar.AnyAsync(k => k.Email == email))
+                {
+                    return (false, "Bu email zaten kayıtlı");
+                }
+
+                // Şifre hash
+                var sifreHash = BCrypt.Net.BCrypt.HashPassword(sifre);
+
+                var kullanici = new Kullanici
+                {
+                    AdSoyad = adSoyad,
+                    Email = email,
+                    SifreHash = sifreHash,
+                    Telefon = telefon,
+                    KayitTarihi = DateTime.Now
+                };
+
+                _context.Kullanicilar.Add(kullanici);
+                await _context.SaveChangesAsync();
+
+                return (true, "Kayıt başarılı");
             }
-
-            // Şifre hash
-            var sifreHash = BCrypt.Net.BCrypt.HashPassword(sifre);
-
-            var kullanici = new Kullanici
+            catch (Exception ex)
             {
-                AdSoyad = adSoyad,
-                Email = email,
-                SifreHash = sifreHash,
-                Telefon = telefon,
-                KayitTarihi = DateTime.Now
-            };
-
-            _context.Kullanicilar.Add(kullanici);
-            await _context.SaveChangesAsync();
-
-            return (true, "Kayıt başarılı");
+                return (false, $"HATA: {ex.Message}");
+            }
         }
 
         // Kullanıcı Giriş

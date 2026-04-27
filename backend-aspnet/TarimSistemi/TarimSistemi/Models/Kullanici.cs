@@ -1,5 +1,8 @@
-﻿namespace TarimSistemi.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace TarimSistemi.Models
 {
+    [Table("Kullanici")]
     public class Kullanici
     {
         public int KullaniciId { get; set; }

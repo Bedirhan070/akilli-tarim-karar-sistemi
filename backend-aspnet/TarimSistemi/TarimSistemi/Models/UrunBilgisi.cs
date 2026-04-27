@@ -1,7 +1,12 @@
-﻿namespace TarimSistemi.Models
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace TarimSistemi.Models
 {
+    [Table("UrunBilgisi")]
     public class UrunBilgisi
     {
+        [Key]
         public int UrunId { get; set; }
         public string UrunAdi { get; set; }
         public decimal? IdealSicaklikMin { get; set; }

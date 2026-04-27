@@ -1,7 +1,12 @@
-﻿namespace TarimSistemi.Models
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace TarimSistemi.Models
 {
+    [Table("KullaniciGeriBildirim")]
     public class KullaniciGeriBildirim
     {
+        [Key]
         public int GeribildirimId { get; set; }
         public int OneriId { get; set; }
         public int KullaniciId { get; set; }

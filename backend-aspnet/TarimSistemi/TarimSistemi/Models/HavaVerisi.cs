@@ -1,7 +1,13 @@
-﻿namespace TarimSistemi.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace TarimSistemi.Models
 {
+    [Table("HavaVerisi")]
     public class HavaVerisi
     {
+        [Key]
         public int HavaVeriId { get; set; }
         public int LokasyonId { get; set; }
         public DateTime Tarih { get; set; }

@@ -1,8 +1,10 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    Layout = null;
 }
-
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<script>
+    if (localStorage.getItem('token')) {
+        window.location.href = '/Home/Dashboard';
+    } else {
+        window.location.href = '/Home/Login';
+    }
+</script>
