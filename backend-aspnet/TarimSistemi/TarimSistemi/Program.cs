@@ -1,10 +1,19 @@
+using Microsoft.EntityFrameworkCore;
+using TarimSistemi.Data;
 namespace TarimSistemi
 {
     public class Program
     {
         public static void Main(string[] args)
         {
+
+
             var builder = WebApplication.CreateBuilder(args);
+
+            // Entity Framework - SQL Server baðlantýsý
+            builder.Services.AddDbContext<TarimDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
