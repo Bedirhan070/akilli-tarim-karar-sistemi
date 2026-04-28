@@ -1,5 +1,4 @@
-﻿using BCrypt.Net;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -20,74 +19,46 @@ namespace TarimSistemi.Services
             _configuration = configuration;
         }
 
-        // Kullanıcı Kayıt
         public async Task<(bool Success, string Message)> KayitOl(string adSoyad, string email, string sifre, string? telefon)
         {
-            try
+            if (await _context.Kullanicilar.AnyAsync(k => k.Email == email))
+                return (false, "Bu email zaten kayıtlı");
+
+            var kullanici = new Kullanici
             {
-                // Email kontrol
-                if (await _context.Kullanicilar.AnyAsync(k => k.Email == email))
-                {
-                    return (false, "Bu email zaten kayıtlı");
-                }
+                AdSoyad = adSoyad,
+                Email = email,
+                SifreHash = BCrypt.Net.BCrypt.HashPassword(sifre),
+                Telefon = telefon,
+                KayitTarihi = DateTime.Now
+            };
 
-                // Şifre hash
-                var sifreHash = BCrypt.Net.BCrypt.HashPassword(sifre);
+            _context.Kullanicilar.Add(kullanici);
+            await _context.SaveChangesAsync();
 
-                var kullanici = new Kullanici
-                {
-                    AdSoyad = adSoyad,
-                    Email = email,
-                    SifreHash = sifreHash,
-                    Telefon = telefon,
-                    KayitTarihi = DateTime.Now
-                };
-
-                _context.Kullanicilar.Add(kullanici);
-                await _context.SaveChangesAsync();
-
-                return (true, "Kayıt başarılı");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"HATA: {ex.Message}");
-            }
+            return (true, "Kayıt başarılı");
         }
 
-        // Kullanıcı Giriş
         public async Task<(bool Success, string? Token, string Message)> GirisYap(string email, string sifre)
         {
             var kullanici = await _context.Kullanicilar.FirstOrDefaultAsync(k => k.Email == email);
 
-            if (kullanici == null)
-            {
+            if (kullanici == null || !BCrypt.Net.BCrypt.Verify(sifre, kullanici.SifreHash))
                 return (false, null, "Email veya şifre hatalı");
-            }
 
-            // Şifre kontrol
-            if (!BCrypt.Net.BCrypt.Verify(sifre, kullanici.SifreHash))
-            {
-                return (false, null, "Email veya şifre hatalı");
-            }
-
-            // Token oluştur
-            var token = GenerateJwtToken(kullanici);
-
-            // Son giriş tarihini güncelle
             kullanici.SonGirisTarihi = DateTime.Now;
             await _context.SaveChangesAsync();
 
-            return (true, token, "Giriş başarılı");
+            return (true, GenerateJwtToken(kullanici), "Giriş başarılı");
         }
 
-        // JWT Token Oluştur
         private string GenerateJwtToken(Kullanici kullanici)
         {
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, kullanici.KullaniciId.ToString()),
-                new Claim(ClaimTypes.Email, kullanici.Email),
-                new Claim(ClaimTypes.Name, kullanici.AdSoyad)
+                new Claim(ClaimTypes.Email,          kullanici.Email),
+                new Claim(ClaimTypes.Name,           kullanici.AdSoyad)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));

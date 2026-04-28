@@ -7,15 +7,25 @@ namespace TarimSistemi.Models
     public class KullaniciGeriBildirim
     {
         [Key]
-        public int GeribildirimId { get; set; }
-        public int OneriId { get; set; }
-        public int KullaniciId { get; set; }
-        public int? Puan { get; set; }
-        public string? Yorum { get; set; }
-        public DateTime KayitZamani { get; set; } = DateTime.Now;
+        [Column("geriBildirimId")]
+        public int GeriBildirimId { get; set; }
 
-        // İlişkiler
-        public Oneri Oneri { get; set; }
+        [Column("kullaniciId")]
+        public int KullaniciId { get; set; }
+
+        [Column("konu")]
+        public string? Konu { get; set; }
+
+        [Column("mesaj")]
+        public string? Mesaj { get; set; }
+
+        [Column("tarih")]
+        public DateTime Tarih { get; set; } = DateTime.Now;
+
+        [Column("durum")]
+        public string? Durum { get; set; }
+
+        // İlişki
         public Kullanici Kullanici { get; set; }
     }
 }
