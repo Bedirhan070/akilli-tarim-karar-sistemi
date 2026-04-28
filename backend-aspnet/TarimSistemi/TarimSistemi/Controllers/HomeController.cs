@@ -46,6 +46,16 @@ namespace TarimSistemi.Controllers
             return View();
         }
 
+        // GET: /Home/Lokasyonlar
+        public IActionResult Lokasyonlar()
+        {
+            return View();
+        }
 
+        // GET: /Home/OneriGecmisi
+        public IActionResult OneriGecmisi()
+        {
+            return View();
+        }
     }
 }

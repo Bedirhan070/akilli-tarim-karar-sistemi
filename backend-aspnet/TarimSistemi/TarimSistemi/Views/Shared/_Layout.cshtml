@@ -184,23 +184,20 @@
             <a href="/Home/Dashboard" class="nav-link @(ViewData["ActivePage"]?.ToString() == "dashboard" ? "active" : "")">
                 <i class="fas fa-chart-line"></i> Dashboard
             </a>
-            <a href="/Lokasyon" class="nav-link @(ViewData["ActivePage"]?.ToString() == "lokasyon" ? "active" : "")">
+            <a href="/Home/Lokasyonlar" class="nav-link @(ViewData["ActivePage"]?.ToString() == "lokasyon" ? "active" : "")">
                 <i class="fas fa-map-marker-alt"></i> Tarlalarım
             </a>
 
             <div class="nav-section-title">Analiz</div>
-            <a href="/Analiz/AnlikRisk" class="nav-link @(ViewData["ActivePage"]?.ToString() == "anlik" ? "active" : "")">
+            <a href="/Home/Dashboard" class="nav-link @(ViewData["ActivePage"]?.ToString() == "anlik" ? "active" : "")">
                 <i class="fas fa-bolt"></i> Anlık Risk Analizi
             </a>
-            <a href="/Analiz/GelecekTahmini" class="nav-link @(ViewData["ActivePage"]?.ToString() == "tahmin" ? "active" : "")">
+            <a href="/Home/Dashboard" class="nav-link @(ViewData["ActivePage"]?.ToString() == "tahmin" ? "active" : "")">
                 <i class="fas fa-clock"></i> Gelecek Tahmini
-            </a>
-            <a href="/Analiz/HavaDurumu" class="nav-link @(ViewData["ActivePage"]?.ToString() == "hava" ? "active" : "")">
-                <i class="fas fa-cloud-sun"></i> Hava Durumu
             </a>
 
             <div class="nav-section-title">Geçmiş</div>
-            <a href="/Oneri" class="nav-link @(ViewData["ActivePage"]?.ToString() == "oneri" ? "active" : "")">
+            <a href="/Home/OneriGecmisi" class="nav-link @(ViewData["ActivePage"]?.ToString() == "oneri" ? "active" : "")">
                 <i class="fas fa-history"></i> Öneri Geçmişi
             </a>
         </nav>

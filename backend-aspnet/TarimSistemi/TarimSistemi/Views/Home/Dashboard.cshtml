@@ -348,7 +348,7 @@
             data.forEach(l => {
                 const opt = document.createElement('option');
                 opt.value = l.lokasyonId;
-                opt.textContent = l.ad;
+                opt.textContent = l.isim || `${l.sehir} / ${l.ilce || ''}`.trim();
                 sel.appendChild(opt);
             });
             document.getElementById('statTarla').textContent = data.length;
