@@ -18,17 +18,10 @@ namespace TarimSistemi.Controllers
         [HttpPost("kayit")]
         public async Task<IActionResult> KayitOl([FromBody] KayitDto kayit)
         {
-            var sonuc = await _authService.KayitOl(
-                kayit.AdSoyad,
-                kayit.Email,
-                kayit.Sifre,
-                kayit.Telefon
-            );
+            var sonuc = await _authService.KayitOl(kayit.AdSoyad, kayit.Email, kayit.Sifre, kayit.Telefon);
 
             if (!sonuc.Success)
-            {
                 return BadRequest(new { message = sonuc.Message });
-            }
 
             return Ok(new { message = sonuc.Message });
         }
@@ -40,30 +33,23 @@ namespace TarimSistemi.Controllers
             var sonuc = await _authService.GirisYap(giris.Email, giris.Sifre);
 
             if (!sonuc.Success)
-            {
                 return Unauthorized(new { message = sonuc.Message });
-            }
 
-            return Ok(new
-            {
-                token = sonuc.Token,
-                message = sonuc.Message
-            });
+            return Ok(new { token = sonuc.Token, message = sonuc.Message });
         }
     }
 
-    // DTO'lar (Data Transfer Objects)
     public class KayitDto
     {
-        public string AdSoyad { get; set; }
-        public string Email { get; set; }
-        public string Sifre { get; set; }
+        public string AdSoyad { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Sifre { get; set; } = "";
         public string? Telefon { get; set; }
     }
 
     public class GirisDto
     {
-        public string Email { get; set; }
-        public string Sifre { get; set; }
+        public string Email { get; set; } = "";
+        public string Sifre { get; set; } = "";
     }
 }

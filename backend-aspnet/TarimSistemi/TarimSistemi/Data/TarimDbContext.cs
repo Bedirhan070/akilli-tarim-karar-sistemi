@@ -10,7 +10,6 @@ namespace TarimSistemi.Data
         {
         }
 
-        // DbSet'ler (Tablolar)
         public DbSet<Kullanici> Kullanicilar { get; set; }
         public DbSet<Lokasyon> Lokasyonlar { get; set; }
         public DbSet<HavaVerisi> HavaVerileri { get; set; }
@@ -22,14 +21,9 @@ namespace TarimSistemi.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Unique constraint: Lokasyon + Tarih
             modelBuilder.Entity<HavaVerisi>()
                 .HasIndex(h => new { h.LokasyonId, h.Tarih })
                 .IsUnique();
-
-            // Puan 1-5 arası kontrol
-            modelBuilder.Entity<KullaniciGeriBildirim>()
-                .HasCheckConstraint("CK_Puan", "Puan >= 1 AND Puan <= 5");
         }
     }
 }
