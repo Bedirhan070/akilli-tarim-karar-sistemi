@@ -3,7 +3,6 @@ from pydantic import BaseModel
 import numpy as np
 import pandas as pd
 import joblib
-import tensorflow as tf
 from keras.models import load_model
 
 # ==========================================
@@ -15,7 +14,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-MODEL_PATH = "/Users/kasimozel/Desktop/Akıllı Tarım Asistanı/ml_service/models/"
+MODEL_PATH = "/Users/kasimozel/Desktop/Akıllı Tarım Asistanı/akilli-tarim-karar-sistemi/ml_service/models/"
 
 # Modelleri yukle
 isolation_forest = joblib.load(MODEL_PATH + "isolation_forest.pkl")
@@ -33,15 +32,15 @@ class HavaVerisi(BaseModel):
     min_sicaklik: float
     yagis: float
     ruzgar_hizi: float
+    nem: float          # YENİ EKLENDI
 
 class LSTMVerisi(BaseModel):
-    gunluk_veri: list  # Son 30 gunluk veri listesi
+    gunluk_veri: list
     tahmin_gun: int = 7
 
 # ==========================================
 # ENDPOINTLER
 # ==========================================
-
 @app.get("/")
 def ana_sayfa():
     return {
@@ -52,30 +51,28 @@ def ana_sayfa():
 @app.post("/anomaly")
 def anomali_tespit(veri: HavaVerisi):
     try:
-        # Veriyi hazirla
         girdi = pd.DataFrame([{
             "max_sicaklik": veri.max_sicaklik,
             "min_sicaklik": veri.min_sicaklik,
             "yagis"       : veri.yagis,
-            "ruzgar_hizi" : veri.ruzgar_hizi
+            "ruzgar_hizi" : veri.ruzgar_hizi,
+            "nem"         : veri.nem
         }])
 
-        # Normalize et
         girdi_normalize = pd.DataFrame(
             scaler.transform(girdi),
             columns=girdi.columns
         )
 
-        # Tahmin yap
         sonuc = isolation_forest.predict(girdi_normalize)[0]
         skor  = isolation_forest.decision_function(girdi_normalize)[0]
 
         return {
-            "durum"      : "normal" if sonuc == 1 else "anomali",
-            "skor"       : round(float(skor), 4),
-            "guveniilir" : bool(sonuc == 1),
-            "mesaj"      : "Veri normal." if sonuc == 1 
-                           else "Anormal veri tespit edildi!"
+            "durum"     : "normal" if sonuc == 1 else "anomali",
+            "skor"      : round(float(skor), 4),
+            "guvenilir" : bool(sonuc == 1),
+            "mesaj"     : "Veri normal." if sonuc == 1
+                          else "Anormal veri tespit edildi!"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -84,31 +81,27 @@ def anomali_tespit(veri: HavaVerisi):
 @app.post("/predict")
 def risk_tahmini(veri: HavaVerisi):
     try:
-        # Veriyi hazirla
         girdi = pd.DataFrame([{
             "max_sicaklik": veri.max_sicaklik,
             "min_sicaklik": veri.min_sicaklik,
             "yagis"       : veri.yagis,
-            "ruzgar_hizi" : veri.ruzgar_hizi
+            "ruzgar_hizi" : veri.ruzgar_hizi,
+            "nem"         : veri.nem
         }])
 
-        # Normalize et
         girdi_normalize = pd.DataFrame(
             scaler.transform(girdi),
             columns=girdi.columns
         )
 
-        # Tahmin yap
-        tahmin    = random_forest.predict(girdi_normalize)[0]
-        olasilik  = random_forest.predict_proba(girdi_normalize)[0]
-        siniflar  = label_encoder.classes_
+        tahmin   = random_forest.predict(girdi_normalize)[0]
+        olasilik = random_forest.predict_proba(girdi_normalize)[0]
+        siniflar = label_encoder.classes_
 
-        # Risk skoru
-        proba_dict  = dict(zip(siniflar, olasilik))
-        risk_skoru  = proba_dict.get("riskli", 0) + \
-                      proba_dict.get("uygun_degil", 0)
+        proba_dict = dict(zip(siniflar, olasilik))
+        risk_skoru = proba_dict.get("riskli", 0) + \
+                     proba_dict.get("uygun_degil", 0)
 
-        # Risk seviyesi
         if risk_skoru > 0.70:
             seviye = "KRITIK"
             renk   = "kirmizi"
@@ -124,7 +117,7 @@ def risk_tahmini(veri: HavaVerisi):
             "risk_skoru" : round(float(risk_skoru), 2),
             "seviye"     : seviye,
             "renk"       : renk,
-            "olasiliklar": {k: round(float(v), 3) 
+            "olasiliklar": {k: round(float(v), 3)
                            for k, v in proba_dict.items()}
         }
     except Exception as e:
@@ -134,7 +127,6 @@ def risk_tahmini(veri: HavaVerisi):
 @app.post("/forecast")
 def gelecek_tahmini(veri: LSTMVerisi):
     try:
-        # Son 30 gunluk veriyi al
         veri_array = np.array(veri.gunluk_veri)
 
         if veri_array.shape != (30, 4):
@@ -143,10 +135,8 @@ def gelecek_tahmini(veri: LSTMVerisi):
                 detail="30 gunluk veri gerekli, her gun 4 deger olmali"
             )
 
-        # Normalize et
         veri_normalize = lstm_scaler.transform(veri_array)
 
-        # Gelecek tahmin
         tahminler = []
         pencere   = veri_normalize.copy()
 
@@ -159,7 +149,6 @@ def gelecek_tahmini(veri: LSTMVerisi):
             pencere       = np.vstack([pencere, yeni_satir])
             tahminler.append(tahmin)
 
-        # Gercek degerlere cevir
         tahmin_gercek = lstm_scaler.inverse_transform(
             np.concatenate([
                 np.array(tahminler).reshape(-1, 1),
@@ -168,8 +157,8 @@ def gelecek_tahmini(veri: LSTMVerisi):
         )[:, 0]
 
         return {
-            "sehir"        : "Bitlis",
-            "tahmin_gun"   : veri.tahmin_gun,
+            "sehir"              : "Bitlis",
+            "tahmin_gun"         : veri.tahmin_gun,
             "max_sicaklik_tahmini": [
                 {"gun": i+1, "sicaklik": round(float(s), 1)}
                 for i, s in enumerate(tahmin_gercek)
