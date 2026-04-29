@@ -1,0 +1,249 @@
+@{
+    ViewData["Title"] = "Giriş Yap";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giriş Yap - Akıllı Tarım Sistemi</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d5a42 50%, #4caf50 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-wrapper {
+            display: flex;
+            width: 100%;
+            max-width: 850px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin: 20px;
+        }
+
+        .auth-left {
+            background: linear-gradient(160deg, #1a3c2e, #2e7d32);
+            color: white;
+            padding: 50px 40px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .auth-left h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        .auth-left p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 25px;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 0.88rem;
+            opacity: 0.9;
+        }
+
+        .feature-list li i {
+            color: #81c784;
+            width: 18px;
+        }
+
+        .auth-right {
+            background: white;
+            padding: 50px 40px;
+            width: 380px;
+            flex-shrink: 0;
+        }
+
+        .auth-right h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a3c2e;
+            margin-bottom: 5px;
+        }
+
+        .auth-right .subtitle {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 30px;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1.5px solid #ddd;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #4caf50;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
+        }
+
+        .btn-auth {
+            background: linear-gradient(135deg, #2e7d32, #4caf50);
+            border: none;
+            border-radius: 8px;
+            padding: 11px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: white;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(76,175,80,0.4);
+            color: white;
+        }
+
+        .input-icon-wrap {
+            position: relative;
+        }
+
+        .input-icon-wrap i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #bbb;
+            font-size: 0.85rem;
+        }
+
+        .input-icon-wrap .form-control {
+            padding-left: 36px;
+        }
+
+        @@media (max-width: 600px) {
+            .auth-left { display: none; }
+            .auth-right { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-wrapper">
+        <!-- Sol panel -->
+        <div class="auth-left">
+            <div>
+                <i class="fas fa-leaf fa-2x mb-3" style="color: #81c784;"></i>
+                <h1>Akıllı Tarım<br>Karar Sistemi</h1>
+                <p>Yapay zeka destekli tarımsal risk analizi ile tarlanızı daha verimli yönetin.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i> Anlık hava durumu takibi</li>
+                    <li><i class="fas fa-check-circle"></i> Random Forest risk analizi</li>
+                    <li><i class="fas fa-check-circle"></i> LSTM 7 günlük tahmin</li>
+                    <li><i class="fas fa-check-circle"></i> Anomali tespiti (Isolation Forest)</li>
+                    <li><i class="fas fa-check-circle"></i> Kişisel aksiyon önerileri</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Sağ panel -->
+        <div class="auth-right">
+            <h2>Hoş Geldiniz</h2>
+            <p class="subtitle">Hesabınıza giriş yapın</p>
+
+            <div id="errorMessage" class="alert alert-danger d-none py-2" style="font-size:0.85rem;"></div>
+
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label class="form-label">E-posta</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" class="form-control" id="email" placeholder="ornek@mail.com" required />
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Şifre</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" class="form-control" id="sifre" placeholder="••••••••" required />
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-auth mb-3">
+                    <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                </button>
+            </form>
+
+            <div class="text-center" style="font-size:0.85rem;">
+                <span class="text-muted">Hesabın yok mu?</span>
+                <a href="/Home/Kayit" class="text-success fw-bold text-decoration-none ms-1">Kayıt Ol</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if (localStorage.getItem('token')) {
+            window.location.href = '/Home/Dashboard';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.submitter;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Giriş yapılıyor...';
+
+            const email = document.getElementById('email').value;
+            const sifre = document.getElementById('sifre').value;
+
+            try {
+                const response = await fetch('/api/Auth/giris', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, sifre })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    window.location.href = '/Home/Dashboard';
+                } else {
+                    const err = document.getElementById('errorMessage');
+                    err.textContent = data.message;
+                    err.classList.remove('d-none');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Giriş Yap';
+                }
+            } catch {
+                const err = document.getElementById('errorMessage');
+                err.textContent = 'Sunucuya bağlanılamadı';
+                err.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Giriş Yap';
+            }
+        });
+    </script>
+</body>
+</html>

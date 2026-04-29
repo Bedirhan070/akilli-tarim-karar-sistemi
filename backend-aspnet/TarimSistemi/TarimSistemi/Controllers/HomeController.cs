@@ -28,5 +28,34 @@ namespace TarimSistemi.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+        // GET: /Home/Login
+        public IActionResult Login()
+        {
+            return View();
+        }
+
+        // GET: /Home/Kayit
+        public IActionResult Kayit()
+        {
+            return View();
+        }
+        // GET: /Home/Dashboard
+        public IActionResult Dashboard()
+        {
+            return View();
+        }
+
+        // GET: /Home/Lokasyonlar
+        public IActionResult Lokasyonlar()
+        {
+            return View();
+        }
+
+        // GET: /Home/OneriGecmisi
+        public IActionResult OneriGecmisi()
+        {
+            return View();
+        }
     }
 }

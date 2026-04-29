@@ -1,0 +1,231 @@
+@{
+    ViewData["Title"] = "Kayıt Ol";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kayıt Ol - Akıllı Tarım Sistemi</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d5a42 50%, #4caf50 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 16px;
+            padding: 45px 40px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .auth-logo i {
+            font-size: 2rem;
+            color: #4caf50;
+        }
+
+        .auth-logo h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a3c2e;
+            margin-top: 8px;
+            margin-bottom: 3px;
+        }
+
+        .auth-logo .subtitle {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1.5px solid #ddd;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+        }
+
+        .form-control:focus {
+            border-color: #4caf50;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
+        }
+
+        .input-icon-wrap {
+            position: relative;
+        }
+
+        .input-icon-wrap i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #bbb;
+            font-size: 0.85rem;
+            z-index: 10;
+        }
+
+        .input-icon-wrap .form-control {
+            padding-left: 36px;
+        }
+
+        .btn-auth {
+            background: linear-gradient(135deg, #2e7d32, #4caf50);
+            border: none;
+            border-radius: 8px;
+            padding: 11px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: white;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(76,175,80,0.4);
+            color: white;
+        }
+
+        .row-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="auth-logo">
+            <i class="fas fa-leaf"></i>
+            <h2>Akıllı Tarım Sistemi</h2>
+            <p class="subtitle">Yeni hesap oluşturun</p>
+        </div>
+
+        <div id="successMessage" class="alert alert-success d-none py-2" style="font-size:0.85rem;"></div>
+        <div id="errorMessage" class="alert alert-danger d-none py-2" style="font-size:0.85rem;"></div>
+
+        <form id="kayitForm">
+            <div class="mb-3">
+                <label class="form-label">Ad Soyad</label>
+                <div class="input-icon-wrap">
+                    <i class="fas fa-user"></i>
+                    <input type="text" class="form-control" id="adSoyad" placeholder="Adınız Soyadınız" required />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">E-posta</label>
+                <div class="input-icon-wrap">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" class="form-control" id="email" placeholder="ornek@mail.com" required />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Telefon <span class="text-muted fw-normal">(opsiyonel)</span></label>
+                <div class="input-icon-wrap">
+                    <i class="fas fa-phone"></i>
+                    <input type="tel" class="form-control" id="telefon" placeholder="5551234567" />
+                </div>
+            </div>
+
+            <div class="row-form mb-3">
+                <div>
+                    <label class="form-label">Şifre</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" class="form-control" id="sifre" placeholder="Min. 6 karakter" required minlength="6" />
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Şifre Tekrar</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" class="form-control" id="sifreTekrar" placeholder="Tekrar girin" required minlength="6" />
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-auth mb-3">
+                <i class="fas fa-user-plus me-2"></i>Kayıt Ol
+            </button>
+        </form>
+
+        <div class="text-center" style="font-size:0.85rem;">
+            <span class="text-muted">Zaten hesabın var mı?</span>
+            <a href="/Home/Login" class="text-success fw-bold text-decoration-none ms-1">Giriş Yap</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('kayitForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.submitter;
+
+            const sifre = document.getElementById('sifre').value;
+            const sifreTekrar = document.getElementById('sifreTekrar').value;
+            const errEl = document.getElementById('errorMessage');
+            const sucEl = document.getElementById('successMessage');
+
+            errEl.classList.add('d-none');
+            sucEl.classList.add('d-none');
+
+            if (sifre !== sifreTekrar) {
+                errEl.textContent = 'Şifreler eşleşmiyor';
+                errEl.classList.remove('d-none');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Kaydediliyor...';
+
+            try {
+                const response = await fetch('/api/Auth/kayit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        adSoyad: document.getElementById('adSoyad').value,
+                        email: document.getElementById('email').value,
+                        sifre,
+                        telefon: document.getElementById('telefon').value || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    sucEl.textContent = 'Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...';
+                    sucEl.classList.remove('d-none');
+                    setTimeout(() => window.location.href = '/Home/Login', 1800);
+                } else {
+                    errEl.textContent = data.message;
+                    errEl.classList.remove('d-none');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Kayıt Ol';
+                }
+            } catch {
+                errEl.textContent = 'Sunucuya bağlanılamadı';
+                errEl.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Kayıt Ol';
+            }
+        });
+    </script>
+</body>
+</html>

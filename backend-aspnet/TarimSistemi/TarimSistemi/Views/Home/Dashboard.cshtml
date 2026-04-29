@@ -1,0 +1,462 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["ActivePage"] = "dashboard";
+}
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .stat-icon.green  { background: #4caf50; }
+    .stat-icon.blue   { background: #2196f3; }
+    .stat-icon.orange { background: #ff9800; }
+    .stat-icon.purple { background: #9c27b0; }
+
+    .stat-label {
+        font-size: 0.78rem;
+        color: #888;
+        margin-bottom: 3px;
+    }
+
+    .stat-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #222;
+        line-height: 1;
+    }
+
+    .risk-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .risk-badge {
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        color: white;
+    }
+
+    .risk-badge.guvenlı  { background: linear-gradient(135deg, #43a047, #66bb6a); }
+    .risk-badge.uyarı    { background: linear-gradient(135deg, #fb8c00, #ffa726); }
+    .risk-badge.kritik   { background: linear-gradient(135deg, #e53935, #ef5350); }
+    .risk-badge.beklıyor { background: linear-gradient(135deg, #78909c, #90a4ae); }
+
+    .risk-score {
+        font-size: 3rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .risk-label {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-top: 5px;
+    }
+
+    .info-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        height: 100%;
+    }
+
+    .info-card h6 {
+        font-weight: 600;
+        color: #444;
+        border-bottom: 2px solid #e8f5e9;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    .weather-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f5f5f5;
+        font-size: 0.88rem;
+    }
+
+    .weather-item:last-child { border-bottom: none; }
+
+    .weather-item .label { color: #888; }
+    .weather-item .val   { font-weight: 600; color: #333; }
+
+    .oneri-item {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #4caf50;
+        font-size: 0.87rem;
+        color: #444;
+    }
+
+    .oneri-item.uyarı  { border-left-color: #ff9800; }
+    .oneri-item.kritik { border-left-color: #f44336; }
+
+    .oneri-tarih {
+        font-size: 0.75rem;
+        color: #aaa;
+        margin-top: 4px;
+    }
+
+    .section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .btn-analiz {
+        background: linear-gradient(135deg, #43a047, #66bb6a);
+        border: none;
+        color: white;
+        padding: 10px 25px;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .btn-analiz:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(76,175,80,0.4);
+        color: white;
+    }
+
+    .placeholder-chart {
+        background: #f5f5f5;
+        border-radius: 8px;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #bbb;
+        font-size: 0.85rem;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    #lokasyonSecim {
+        border-radius: 8px;
+        border: 1.5px solid #c8e6c9;
+        font-size: 0.9rem;
+    }
+</style>
+
+<!-- Lokasyon Seçim Alanı -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h5 class="mb-1" style="font-weight:700; color:#2e7d32;">Hoş geldiniz!</h5>
+        <small class="text-muted">Analiz yapmak istediğiniz tarlayı seçin</small>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <select class="form-select form-select-sm" id="lokasyonSecim" style="width:200px;">
+            <option value="">-- Tarla Seçin --</option>
+        </select>
+        <button class="btn btn-analiz btn-sm" id="btnAnalize">
+            <i class="fas fa-play me-1"></i> Analiz Et
+        </button>
+    </div>
+</div>
+
+<!-- Üst İstatistik Kartları -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-map-marker-alt"></i></div>
+            <div>
+                <div class="stat-label">Kayıtlı Tarla</div>
+                <div class="stat-value" id="statTarla">-</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-thermometer-half"></i></div>
+            <div>
+                <div class="stat-label">Sıcaklık</div>
+                <div class="stat-value" id="statSicaklik">-</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="fas fa-tint"></i></div>
+            <div>
+                <div class="stat-label">Nem</div>
+                <div class="stat-value" id="statNem">-</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="fas fa-lightbulb"></i></div>
+            <div>
+                <div class="stat-label">Son Öneriler</div>
+                <div class="stat-value" id="statOneri">-</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ana İçerik -->
+<div class="row g-3">
+
+    <!-- Risk Kartı -->
+    <div class="col-md-4">
+        <div class="risk-card h-100">
+            <div class="section-title"><i class="fas fa-shield-alt me-2 text-success"></i>Risk Durumu</div>
+            <div class="risk-badge beklıyor mb-3" id="riskBadge">
+                <div class="risk-score" id="riskScore">-</div>
+                <div class="risk-label" id="riskLabel">Tarla seçin</div>
+            </div>
+            <div class="d-flex flex-column gap-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted"><i class="fas fa-check-circle text-success me-1"></i>Anomali Durumu</small>
+                    <span class="badge bg-secondary" id="anomaliBadge">Bekleniyor</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted"><i class="fas fa-brain text-primary me-1"></i>Model</small>
+                    <span class="badge bg-secondary" id="modelBadge">Random Forest</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted"><i class="fas fa-clock text-warning me-1"></i>Son Güncelleme</small>
+                    <span class="text-muted" style="font-size:0.8rem;" id="sonGuncelleme">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hava Durumu Kartı -->
+    <div class="col-md-4">
+        <div class="info-card">
+            <h6><i class="fas fa-cloud-sun me-2 text-warning"></i>Hava Durumu</h6>
+            <div id="havaContainer">
+                <div class="weather-item">
+                    <span class="label"><i class="fas fa-thermometer-half me-1"></i>Maks. Sıcaklık</span>
+                    <span class="val" id="hwSicaklikMax">-</span>
+                </div>
+                <div class="weather-item">
+                    <span class="label"><i class="fas fa-thermometer-quarter me-1"></i>Min. Sıcaklık</span>
+                    <span class="val" id="hwSicaklikMin">-</span>
+                </div>
+                <div class="weather-item">
+                    <span class="label"><i class="fas fa-tint me-1"></i>Nem</span>
+                    <span class="val" id="hwNem">-</span>
+                </div>
+                <div class="weather-item">
+                    <span class="label"><i class="fas fa-cloud-rain me-1"></i>Yağış</span>
+                    <span class="val" id="hwYagis">-</span>
+                </div>
+                <div class="weather-item">
+                    <span class="label"><i class="fas fa-wind me-1"></i>Rüzgar</span>
+                    <span class="val" id="hwRuzgar">-</span>
+                </div>
+                <div class="weather-item">
+                    <span class="label"><i class="fas fa-satellite-dish me-1"></i>Kaynak</span>
+                    <span class="val" id="hwKaynak">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Öneri Kartı -->
+    <div class="col-md-4">
+        <div class="info-card">
+            <h6><i class="fas fa-seedling me-2 text-success"></i>Aksiyon Önerisi</h6>
+            <div id="oneriContainer">
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle fa-2x mb-2 d-block" style="opacity:0.3"></i>
+                    Analiz yapmak için tarla seçin ve "Analiz Et" butonuna basın
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7 Günlük Tahmin -->
+    <div class="col-md-8">
+        <div class="info-card">
+            <h6><i class="fas fa-chart-line me-2 text-primary"></i>7 Günlük Risk Tahmini <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">LSTM</span></h6>
+            <div class="placeholder-chart" id="tahminChart">
+                <i class="fas fa-chart-area fa-2x" style="opacity:0.3"></i>
+                <span>Tahmin için analiz başlatın</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Öneriler -->
+    <div class="col-md-4">
+        <div class="info-card">
+            <h6><i class="fas fa-history me-2 text-secondary"></i>Son Öneriler</h6>
+            <div id="sonOnerilerContainer">
+                <div class="text-center text-muted py-3" style="font-size:0.85rem;">
+                    Henüz öneri bulunmuyor
+                </div>
+            </div>
+            <a href="/Oneri" class="btn btn-sm btn-outline-success w-100 mt-2">Tüm Geçmişi Gör</a>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    const token = localStorage.getItem('token');
+
+    const authHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+    };
+
+    // Lokasyonları yükle
+    async function loadLokasyonlar() {
+        try {
+            const res = await fetch('/api/Lokasyon', { headers: authHeaders });
+            if (!res.ok) return;
+            const data = await res.json();
+            const sel = document.getElementById('lokasyonSecim');
+            data.forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l.lokasyonId;
+                opt.textContent = l.isim || `${l.sehir} / ${l.ilce || ''}`.trim();
+                sel.appendChild(opt);
+            });
+            document.getElementById('statTarla').textContent = data.length;
+        } catch {}
+    }
+
+    // Son önerileri yükle
+    async function loadSonOneriler() {
+        try {
+            const res = await fetch('/api/Oneri/son', { headers: authHeaders });
+            if (!res.ok) return;
+            const data = await res.json();
+            document.getElementById('statOneri').textContent = data.length;
+            const container = document.getElementById('sonOnerilerContainer');
+            if (data.length === 0) return;
+            container.innerHTML = '';
+            data.slice(0, 3).forEach(o => {
+                const seviye = o.riskSkoru > 0.70 ? 'kritik' : o.riskSkoru > 0.40 ? 'uyarı' : '';
+                container.innerHTML += `
+                    <div class="oneri-item ${seviye}">
+                        <div>${o.tavsiyeMetni || 'Öneri metni yok'}</div>
+                        <div class="oneri-tarih">${new Date(o.olusturulmaZamani).toLocaleDateString('tr-TR')}</div>
+                    </div>`;
+            });
+        } catch {}
+    }
+
+    // Analiz Et butonu
+    document.getElementById('btnAnalize').addEventListener('click', async () => {
+        const lokId = document.getElementById('lokasyonSecim').value;
+        if (!lokId) {
+            alert('Lütfen bir tarla seçin');
+            return;
+        }
+
+        const btn = document.getElementById('btnAnalize');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Analiz ediliyor...';
+
+        try {
+            const res = await fetch(`/api/Analiz/anlik/${lokId}`, {
+                method: 'POST',
+                headers: authHeaders
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.message || 'Analiz sırasında hata oluştu');
+                return;
+            }
+
+            // Risk badge güncelle
+            const score = data.riskSkoru ?? 0;
+            const badge = document.getElementById('riskBadge');
+            badge.className = 'risk-badge mb-3';
+            if (score > 0.70) {
+                badge.classList.add('kritik');
+                document.getElementById('riskLabel').textContent = 'KRİTİK RİSK';
+            } else if (score > 0.40) {
+                badge.classList.add('uyarı');
+                document.getElementById('riskLabel').textContent = 'ORTA RİSK';
+            } else {
+                badge.classList.add('guvenlı');
+                document.getElementById('riskLabel').textContent = 'GÜVENLİ';
+            }
+            document.getElementById('riskScore').textContent = (score * 100).toFixed(0) + '%';
+
+            // Anomali badge
+            document.getElementById('anomaliBadge').textContent = data.anomaliVar ? 'Anomali Var' : 'Normal';
+            document.getElementById('anomaliBadge').className = 'badge ' + (data.anomaliVar ? 'bg-danger' : 'bg-success');
+
+            document.getElementById('sonGuncelleme').textContent = new Date().toLocaleTimeString('tr-TR');
+
+            // Hava durumu
+            if (data.havaVerisi) {
+                const hw = data.havaVerisi;
+                document.getElementById('hwSicaklikMax').textContent = hw.sicaklikMax != null ? hw.sicaklikMax + '°C' : '-';
+                document.getElementById('hwSicaklikMin').textContent = hw.sicaklikMin != null ? hw.sicaklikMin + '°C' : '-';
+                document.getElementById('hwNem').textContent = hw.nem != null ? '%' + hw.nem : '-';
+                document.getElementById('hwYagis').textContent = hw.yagis != null ? hw.yagis + ' mm' : '-';
+                document.getElementById('hwRuzgar').textContent = hw.ruzgarHizi != null ? hw.ruzgarHizi + ' km/h' : '-';
+                document.getElementById('hwKaynak').textContent = hw.apiKaynagi || '-';
+                document.getElementById('statSicaklik').textContent = hw.sicaklikMax != null ? hw.sicaklikMax + '°C' : '-';
+                document.getElementById('statNem').textContent = hw.nem != null ? '%' + hw.nem : '-';
+            }
+
+            // Öneri metni
+            if (data.tavsiyeMetni) {
+                const seviye = score > 0.70 ? 'kritik' : score > 0.40 ? 'uyarı' : '';
+                document.getElementById('oneriContainer').innerHTML = `
+                    <div class="oneri-item ${seviye}">
+                        <i class="fas fa-info-circle me-1"></i>
+                        ${data.tavsiyeMetni}
+                    </div>`;
+            }
+
+            await loadSonOneriler();
+
+        } catch (e) {
+            alert('Bağlantı hatası: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play me-1"></i> Analiz Et';
+        }
+    });
+
+    // Sayfa yüklenince
+    loadLokasyonlar();
+    loadSonOneriler();
+</script>
+}
