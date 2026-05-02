@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using TarimSistemi.Configuration;
 using TarimSistemi.Data;
 using TarimSistemi.Services;
 
@@ -48,7 +48,10 @@ namespace TarimSistemi
                 });
             });
 
+            builder.Services.Configure<EmailAyarlari>(builder.Configuration.GetSection("Email"));
+
             // Servisler
+            builder.Services.AddScoped<IEmailGonderici, SmtpEmailGonderici>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddHttpClient<HavaService>();
 
@@ -72,6 +75,12 @@ namespace TarimSistemi
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<TarimDbContext>();
+                DbInitializer.SeedUrunler(db);
+            }
 
             if (!app.Environment.IsDevelopment())
             {

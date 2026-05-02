@@ -24,6 +24,12 @@ namespace TarimSistemi.Data
             modelBuilder.Entity<HavaVerisi>()
                 .HasIndex(h => new { h.LokasyonId, h.Tarih })
                 .IsUnique();
+
+            modelBuilder.Entity<Lokasyon>()
+                .HasOne(l => l.UrunBilgisi)
+                .WithMany(u => u.Lokasyonlar)
+                .HasForeignKey(l => l.UrunId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

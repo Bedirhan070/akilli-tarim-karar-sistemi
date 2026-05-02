@@ -6,6 +6,81 @@
 @section Styles {
 <link rel="stylesheet" href="~/lib/leaflet/leaflet.css" asp-append-version="true" />
 <style>
+    .tarla-page-header {
+        background: linear-gradient(135deg, #e8f5e9 0%, #fff 55%, #f1f8e9 100%);
+        border: 1px solid #c8e6c9;
+        border-radius: 16px;
+        padding: 20px 22px;
+        margin-bottom: 20px;
+    }
+    .tarla-page-header h1 {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #1b5e20;
+        margin: 0 0 6px;
+    }
+    .tarla-page-header p {
+        margin: 0;
+        font-size: 0.92rem;
+        color: #555;
+        max-width: 720px;
+        line-height: 1.45;
+    }
+
+    .tarla-adimlar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    .tarla-adim {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid #a5d6a7;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 0.82rem;
+        color: #333;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .tarla-adim-num {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #4caf50;
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .tarla-adim strong { color: #2e7d32; }
+
+    .tarla-dash-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 12px;
+        padding: 8px 14px;
+        background: #fff;
+        border: 1px solid #81c784;
+        border-radius: 10px;
+        color: #2e7d32;
+        font-size: 0.84rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+    .tarla-dash-link:hover {
+        background: #e8f5e9;
+        color: #1b5e20;
+        box-shadow: 0 2px 8px rgba(76,175,80,0.2);
+    }
+
     /* Harita marker stilleri */
     .il-icon { background: transparent; border: none; }
     .il-badge {
@@ -50,118 +125,332 @@
 
     #harita {
         width: 100%;
-        height: 560px;
-        min-height: 280px;
+        height: 520px;
+        min-height: 260px;
         position: relative;
         z-index: 1;
         background: #e8ecef;
+        border-radius: 0 0 14px 14px;
     }
     #harita .leaflet-container {
         width: 100%;
         height: 100%;
         font-family: inherit;
+        border-radius: 0 0 14px 14px;
     }
 
     .map-card {
         background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        overflow: visible;
+        border-radius: 14px;
+        box-shadow: 0 4px 20px rgba(26,60,46,0.08);
+        overflow: hidden;
+        border: 1px solid #e0e0e0;
     }
     .map-header {
-        background: #f9fafb;
+        background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
         border-bottom: 1px solid #eee;
-        padding: 9px 16px;
+        padding: 12px 16px;
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 10px;
-        font-size: 0.84rem;
+        font-size: 0.86rem;
         color: #555;
     }
     .map-header strong { color: #2e7d32; }
+    .map-hint {
+        width: 100%;
+        font-size: 0.78rem;
+        color: #777;
+        margin: 0;
+        padding-top: 4px;
+        border-top: 1px dashed #e0e0e0;
+    }
+    .map-hint i { color: #4caf50; }
 
     .panel-card {
         background: #fff;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(26,60,46,0.08);
+        border: 1px solid #e8e8e8;
+    }
+    .panel-card-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #1b5e20;
+        margin: 0 0 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .panel-card-title i { color: #4caf50; }
+    .panel-card-sub {
+        font-size: 0.8rem;
+        color: #888;
+        margin-bottom: 16px;
+        line-height: 1.4;
+    }
+
+    .konum-empty {
+        background: #fafafa;
+        border: 2px dashed #bdbdbd;
         border-radius: 12px;
         padding: 18px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    }
-    .konum-empty {
-        background: #f8f8f8;
-        border: 2px dashed #ddd;
-        border-radius: 10px;
-        padding: 14px;
         text-align: center;
-        color: #bbb;
-        font-size: 0.82rem;
+        color: #888;
+        font-size: 0.86rem;
+        line-height: 1.5;
     }
+    .konum-empty i { color: #4caf50; opacity: 0.85; }
     .konum-filled {
-        background: #e8f5e9;
-        border-radius: 10px;
-        padding: 11px 14px;
-        font-size: 0.84rem;
-        color: #2e7d32;
+        background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+        border: 1px solid #a5d6a7;
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-size: 0.88rem;
+        color: #1b5e20;
+        font-weight: 700;
+    }
+    .konum-filled i { color: #2e7d32; }
+
+    .form-label-tarla {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #444;
+        margin-bottom: 6px;
+    }
+    .form-label-tarla .zorunlu {
+        color: #c62828;
+        font-size: 0.72rem;
         font-weight: 600;
     }
 
-    .tarla-item {
-        background: #fff;
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 9px;
-        box-shadow: 0 1px 5px rgba(0,0,0,0.07);
-        position: relative;
-    }
-    .tarla-item-name { font-weight: 700; font-size: 0.88rem; color: #222; }
-    .tarla-item-info { font-size: 0.77rem; color: #999; margin-top: 3px; }
-    .btn-sil {
-        position: absolute; top: 10px; right: 10px;
-        background: none; border: none; color: #ddd;
-        cursor: pointer; font-size: 0.85rem;
-        transition: color 0.2s; padding: 2px 5px;
-    }
-    .btn-sil:hover { color: #f44336; }
-
     .form-control, .form-select {
+        border-radius: 10px;
+        border: 1.5px solid #d0d0d0;
+        font-size: 0.9rem;
+        padding: 10px 12px;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #4caf50;
+        box-shadow: 0 0 0 3px rgba(76,175,80,0.18);
+    }
+
+    .btn-tarla-kaydet {
+        background: linear-gradient(135deg, #43a047, #66bb6a);
+        border: none;
+        color: #fff;
+        border-radius: 10px;
+        padding: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-tarla-kaydet:hover:not(:disabled) {
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(76,175,80,0.4);
+    }
+    .btn-tarla-kaydet:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    .liste-baslik-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .liste-baslik {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #333;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .liste-baslik i { color: #4caf50; }
+
+    .tarla-count-pill {
+        background: #e8f5e9;
+        color: #2e7d32;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 1px solid #a5d6a7;
+    }
+
+    .tarla-liste-scroll {
+        max-height: min(420px, 55vh);
+        overflow-y: auto;
+        padding-right: 4px;
+        margin-right: -4px;
+    }
+    .tarla-liste-scroll::-webkit-scrollbar { width: 6px; }
+    .tarla-liste-scroll::-webkit-scrollbar-thumb {
+        background: #c8e6c9;
+        border-radius: 6px;
+    }
+
+    .tarla-kart {
+        background: #fff;
+        border-radius: 12px;
+        padding: 14px 44px 14px 14px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        border: 1px solid #eee;
+        border-left: 4px solid #4caf50;
+        position: relative;
+        transition: box-shadow 0.2s;
+    }
+    .tarla-kart:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .tarla-kart--urunyok {
+        border-left-color: #ff9800;
+        background: linear-gradient(90deg, #fff8e1 0%, #fff 18%);
+    }
+
+    .tarla-kart-name {
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: #222;
+        margin: 0 0 6px;
+        line-height: 1.25;
+    }
+    .tarla-kart-yer {
+        font-size: 0.8rem;
+        color: #666;
+        margin: 0 0 10px;
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .tarla-kart-yer i {
+        color: #4caf50;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    .tarla-urun-etiket {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 10px;
         border-radius: 8px;
-        border: 1.5px solid #ddd;
+        margin-bottom: 8px;
+    }
+    .tarla-urun-etiket.var {
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+    }
+    .tarla-urun-etiket.yok {
+        background: #fff3e0;
+        color: #e65100;
+        border: 1px solid #ffcc80;
+    }
+
+    .tarla-kart .form-label-urun {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #666;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+
+    .btn-sil-tarla {
+        position: absolute;
+        top: 12px;
+        right: 10px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid #ffcdd2;
+        background: #fff;
+        color: #e57373;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .btn-sil-tarla:hover {
+        background: #ffebee;
+        color: #c62828;
+        border-color: #ef9a9a;
+    }
+
+    .tarla-bos-durum {
+        text-align: center;
+        padding: 28px 16px;
+        background: #fafafa;
+        border-radius: 12px;
+        border: 2px dashed #e0e0e0;
+        color: #888;
         font-size: 0.88rem;
     }
-    .form-control:focus {
-        border-color: #4caf50;
-        box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
-    }
+    .tarla-bos-durum i { font-size: 2rem; color: #c8e6c9; margin-bottom: 10px; display: block; }
 
-    /* Yükleniyor örtüsü */
     #loadingOverlay {
         position: absolute; inset: 0;
-        background: rgba(255,255,255,0.72);
+        background: rgba(255,255,255,0.78);
         display: none;
         align-items: center;
         justify-content: center;
-        border-radius: 0 0 12px 12px;
+        border-radius: 0 0 14px 14px;
         z-index: 500;
+    }
+
+    @@media (max-width: 991px) {
+        #harita { height: 380px; }
+        .tarla-liste-scroll { max-height: none; }
     }
 </style>
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h5 class="mb-1" style="font-weight:700;color:#2e7d32;">Tarlalarım</h5>
-        <small class="text-muted">Haritadan il → ilçe seçerek tarla konumu belirleyin</small>
+<div class="tarla-page-header">
+    <h1><i class="fas fa-tractor me-2" style="color:#4caf50;"></i>Tarlalarım</h1>
+    <p>Tarlanızın yerini haritadan işaretleyin, isim ve ürün seçin. Ürün seçimi, Dashboard’daki <strong>bugünkü risk analizi</strong> için gereklidir.</p>
+    <div class="tarla-adimlar">
+        <div class="tarla-adim">
+            <span class="tarla-adim-num">1</span>
+            <span><strong>Haritada</strong> il → ilçe tıklayın</span>
+        </div>
+        <div class="tarla-adim">
+            <span class="tarla-adim-num">2</span>
+            <span><strong>Sağda</strong> isim ve ürünü doldurun</span>
+        </div>
+        <div class="tarla-adim">
+            <span class="tarla-adim-num">3</span>
+            <span><strong>Kaydet</strong> — listeyi güncelleyin</span>
+        </div>
     </div>
+    <a href="/Home/Dashboard" class="tarla-dash-link">
+        <i class="fas fa-chart-line"></i> Risk analizine git (Dashboard)
+    </a>
 </div>
 
-<div class="row g-3">
+<div class="row g-4">
 
-    <!-- Sol: Harita -->
     <div class="col-lg-8">
         <div class="map-card">
             <div class="map-header">
-                <i class="fas fa-map-marked-alt text-success"></i>
-                <span id="breadcrumb">Türkiye — Bir il seçin</span>
-                <button id="btnGeri" class="btn btn-sm btn-light ms-auto d-none"
-                        style="border-radius:7px;font-size:0.78rem;padding:3px 12px;">
+                <i class="fas fa-map-marked-alt text-success fs-5"></i>
+                <div class="flex-grow-1">
+                    <span id="breadcrumb" class="d-block">Türkiye — <strong>Bir il seçin</strong></span>
+                    <p class="map-hint mb-0 mt-1">
+                        <i class="fas fa-lightbulb me-1"></i>
+                        Yeşil etiketler iller, il seçince ilçeler çıkar. İlçeye tıklayınca konum sağdaki forma yazılır.
+                    </p>
+                </div>
+                <button type="button" id="btnGeri" class="btn btn-sm btn-outline-secondary d-none"
+                        style="border-radius:10px;font-size:0.8rem;">
                     <i class="fas fa-arrow-left me-1"></i>Geri
                 </button>
             </div>
@@ -169,26 +458,26 @@
                 <div id="harita"></div>
                 <div id="loadingOverlay" style="display:none;">
                     <div class="text-center">
-                        <div class="spinner-border text-success" style="width:1.5rem;height:1.5rem;"></div>
-                        <div style="font-size:0.8rem;color:#555;margin-top:6px;">Konum aranıyor...</div>
+                        <div class="spinner-border text-success"></div>
+                        <div class="mt-2 small text-muted">Konum aranıyor…</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Sağ: Form + Liste -->
-    <div class="col-lg-4 d-flex flex-column gap-3">
+    <div class="col-lg-4 d-flex flex-column gap-4">
 
-        <!-- Tarla ekleme formu -->
         <div class="panel-card">
-            <div class="fw-bold mb-3" style="font-size:0.93rem;color:#2e7d32;">
-                <i class="fas fa-plus-circle me-1"></i>Yeni Tarla
-            </div>
+            <h2 class="panel-card-title">
+                <i class="fas fa-plus-circle"></i>
+                Yeni tarla ekle
+            </h2>
+            <p class="panel-card-sub">Önce haritadan konum seçin. Ürün seçmeden de kaydedebilirsiniz; analiz için sonra listeden ekleyebilirsiniz.</p>
 
             <div id="konumEmpty" class="konum-empty mb-3">
-                <i class="fas fa-hand-pointer d-block mb-1" style="font-size:1.4rem;"></i>
-                Haritadan önce ili,<br>sonra ilçeyi seçin
+                <i class="fas fa-hand-pointer d-block mb-2" style="font-size:1.6rem;"></i>
+                Haritada <strong>il</strong>, sonra <strong>ilçe</strong> seçin
             </div>
             <div id="konumFilled" class="konum-filled mb-3 d-none">
                 <i class="fas fa-map-marker-alt me-1"></i>
@@ -196,17 +485,28 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label" style="font-size:0.81rem;font-weight:600;color:#555;">
-                    Tarla Adı <span class="text-muted fw-normal">(opsiyonel)</span>
+                <label class="form-label-tarla" for="fIsim">
+                    Tarla adı <span class="text-muted fw-normal">(isteğe bağlı)</span>
                 </label>
-                <input type="text" class="form-control" id="fIsim" placeholder="Örn: Kuzey Tarla" />
+                <input type="text" class="form-control" id="fIsim" placeholder="Örn: Üzüm bağı, Kuzey parsel" autocomplete="off" />
             </div>
 
-            <div id="formError" class="alert alert-danger d-none py-2 mb-2" style="font-size:0.81rem;border-radius:8px;"></div>
+            <div class="mb-3">
+                <label class="form-label-tarla" for="fUrun">
+                    Yetiştirilecek ürün <span class="zorunlu">analiz için önerilir</span>
+                </label>
+                <select class="form-select" id="fUrun" aria-describedby="fUrunHelp">
+                    <option value="">Yükleniyor…</option>
+                </select>
+                <small id="fUrunHelp" class="text-muted d-block mt-2" style="font-size:0.78rem;line-height:1.4;">
+                    Buğday, mısır vb. seçimi risk hesabında kullanılır. Kayıttan sonra aşağıdaki listeden de değiştirebilirsiniz.
+                </small>
+            </div>
 
-            <button id="btnKaydet" class="btn w-100 text-white fw-bold"
-                    style="background:#4caf50;border-radius:8px;" disabled>
-                <i class="fas fa-save me-1"></i>Tarla Olarak Kaydet
+            <div id="formError" class="alert alert-danger d-none py-2 mb-3" style="font-size:0.84rem;border-radius:10px;"></div>
+
+            <button type="button" id="btnKaydet" class="btn btn-tarla-kaydet w-100" disabled>
+                <i class="fas fa-save me-2"></i>Tarlayı kaydet
             </button>
 
             <input type="hidden" id="fIl" />
@@ -215,18 +515,18 @@
             <input type="hidden" id="fBoylam" />
         </div>
 
-        <!-- Kayıtlı tarlalar -->
-        <div>
-            <div class="d-flex align-items-center mb-2">
-                <span class="fw-bold" style="font-size:0.84rem;color:#555;">
-                    <i class="fas fa-seedling me-1 text-success"></i>Kayıtlı Tarlalar
-                </span>
-                <span id="tarlaCount" class="badge ms-2"
-                      style="background:#e8f5e9;color:#2e7d32;font-size:0.72rem;"></span>
+        <div class="panel-card flex-grow-1 d-flex flex-column">
+            <div class="liste-baslik-wrap">
+                <h2 class="liste-baslik">
+                    <i class="fas fa-seedling"></i>
+                    Kayıtlı tarlalarım
+                </h2>
+                <span id="tarlaCount" class="tarla-count-pill" aria-live="polite">0</span>
             </div>
-            <div id="tarlaListesi">
-                <div class="text-center text-muted py-3" style="font-size:0.84rem;">
-                    <i class="fas fa-spinner fa-spin me-1"></i>Yükleniyor...
+            <p class="small text-muted mb-2" style="font-size:0.78rem;">Ürün satırından değişiklik yapınca otomatik kaydedilir.</p>
+            <div id="tarlaListesi" class="tarla-liste-scroll flex-grow-1">
+                <div class="text-center text-muted py-4 small">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Yükleniyor…
                 </div>
             </div>
         </div>

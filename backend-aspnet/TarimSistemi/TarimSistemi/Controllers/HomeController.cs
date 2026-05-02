@@ -1,24 +1,20 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using TarimSistemi.Models;
+using TarimSistemi.Services;
 
 namespace TarimSistemi.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly AuthService _authService;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(AuthService authService)
         {
-            _logger = logger;
+            _authService = authService;
         }
 
         public IActionResult Index()
-        {
-            return View();
-        }
-
-        public IActionResult Privacy()
         {
             return View();
         }
@@ -32,6 +28,14 @@ namespace TarimSistemi.Controllers
         // GET: /Home/Login
         public IActionResult Login()
         {
+            return View();
+        }
+
+        // GET: /Home/SifreSifirla?token=... (token yoksa e-posta isteme formu)
+        public IActionResult SifreSifirla()
+        {
+            var q = Request.Query["token"];
+            ViewBag.ResetToken = q.Count > 0 ? q[0] : null;
             return View();
         }
 
@@ -56,6 +60,48 @@ namespace TarimSistemi.Controllers
         public IActionResult OneriGecmisi()
         {
             return View();
+        }
+
+        // GET: /Home/Hesabim
+        public IActionResult Hesabim()
+        {
+            return View();
+        }
+
+        // GET: /Home/EmailOnay?token=...
+        public async Task<IActionResult> EmailOnay(string? token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                ViewBag.Basari = false;
+                ViewBag.Baslik = "Geçersiz bağlantı";
+                ViewBag.Mesaj = "Doğrulama adresi eksik veya hatalı.";
+                return View("OnaySonuc");
+            }
+
+            var (ok, mesaj) = await _authService.OnaylaKayitEmailiAsync(token);
+            ViewBag.Basari = ok;
+            ViewBag.Baslik = ok ? "Hesabınız doğrulandı" : "Doğrulama başarısız";
+            ViewBag.Mesaj = mesaj;
+            return View("OnaySonuc");
+        }
+
+        // GET: /Home/SifreEmailOnay?token=...
+        public async Task<IActionResult> SifreEmailOnay(string? token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                ViewBag.Basari = false;
+                ViewBag.Baslik = "Geçersiz bağlantı";
+                ViewBag.Mesaj = "Onay adresi eksik veya hatalı.";
+                return View("OnaySonuc");
+            }
+
+            var (ok, mesaj) = await _authService.OnaylaSifreDegisikligiAsync(token);
+            ViewBag.Basari = ok;
+            ViewBag.Baslik = ok ? "Şifre güncellendi" : "İşlem başarısız";
+            ViewBag.Mesaj = mesaj;
+            return View("OnaySonuc");
         }
     }
 }

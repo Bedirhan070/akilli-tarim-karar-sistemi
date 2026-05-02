@@ -1,0 +1,318 @@
+@{
+    ViewData["Title"] = "Hesabım";
+    ViewData["ActivePage"] = "hesap";
+}
+
+<style>
+    .hesap-header {
+        background: linear-gradient(125deg, #e8f5e9 0%, #fff 45%, #e3f2fd 100%);
+        border: 1px solid #b2dfbc;
+        border-radius: 18px;
+        padding: 22px 26px;
+        margin-bottom: 22px;
+        box-shadow: 0 8px 28px rgba(26,60,46,0.07);
+    }
+    .hesap-header h1 {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #1b5e20;
+        margin: 0 0 8px;
+        letter-spacing: -0.03em;
+    }
+    .hesap-header p { margin: 0; color: #4a6352; font-size: 0.92rem; max-width: 640px; line-height: 1.5; }
+    .hesap-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(26,60,46,0.1);
+        box-shadow: 0 4px 22px rgba(20,40,30,0.06);
+        padding: 22px 24px;
+        height: 100%;
+    }
+    .hesap-card h2 {
+        font-size: 1.02rem;
+        font-weight: 800;
+        color: #2e4a38;
+        margin: 0 0 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #e8f5e9;
+    }
+    .hesap-readonly {
+        background: #f8faf8;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.88rem;
+        color: #444;
+        border: 1px solid #e0ebe0;
+    }
+    .hesap-label { font-size: 0.75rem; font-weight: 700; color: #6b8f78; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+
+    .password-field-wrap { position: relative; }
+    .password-field-wrap .form-control { padding-right: 44px; }
+    .btn-toggle-sifre {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        color: #6b8f78;
+        padding: 6px 10px;
+        cursor: pointer;
+        line-height: 1;
+        border-radius: 8px;
+    }
+    .btn-toggle-sifre:hover { color: #1b5e20; background: rgba(76, 175, 80, 0.1); }
+</style>
+
+<div class="hesap-header">
+    <h1><i class="fas fa-user-circle me-2 text-success"></i>Hesabım</h1>
+    <p>Bilgilerinizi güncelleyin, şifrenizi buradan değiştirin. E-posta adresi giriş için kullanıldığından değiştirilemez.</p>
+</div>
+
+<div id="hesapAlert" class="alert d-none mb-3" role="alert"></div>
+<div id="emailOnayUyari" class="alert alert-warning border d-none mb-3" style="font-size:0.9rem;" role="alert">
+    <strong>E-posta doğrulanmamış.</strong> Güvenlik için giriş öncesi doğrulama gerekir. Giriş sayfasından yeni doğrulama e-postası isteyebilirsiniz.
+</div>
+<div id="sifreOnayBekUyari" class="alert alert-info border d-none mb-3" style="font-size:0.9rem;" role="alert">
+    <strong>Şifre değişikliği henüz tamamlanmadı.</strong>
+    <p class="small mb-2 mb-0 mt-1">Yeni şifre, <strong>e-postanızdaki onay bağlantısına</strong> tıklanana kadar devreye girmez. Konu satırı: «Şifre değişikliğini onaylayın».</p>
+    <ul class="small mb-2 ps-3">
+        <li>Gelen kutusu ve <strong>spam / gereksiz</strong> klasörüne bakın.</li>
+        <li id="sifreOnaySonSatir" class="d-none"></li>
+    </ul>
+    <button type="button" class="btn btn-sm btn-outline-primary" id="btnYenileSifreOnay">Onay e-postasını tekrar gönder</button>
+    <span id="sifreOnayYenileSonuc" class="small ms-2 text-muted"></span>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="hesap-card">
+            <h2><i class="fas fa-id-card me-2 text-secondary"></i>Hesap bilgileri</h2>
+            <div id="profilYukleniyor" class="text-muted small">Yükleniyor…</div>
+            <form id="formProfil" class="d-none">
+                <div class="mb-3">
+                    <div class="hesap-label">E-posta</div>
+                    <div class="hesap-readonly" id="roEmail">—</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="inpAdSoyad">Ad soyad</label>
+                    <input type="text" class="form-control" id="inpAdSoyad" required maxlength="120" autocomplete="name" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="inpTelefon">Telefon</label>
+                    <input type="tel" class="form-control" id="inpTelefon" maxlength="30" autocomplete="tel" placeholder="İsteğe bağlı" />
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-6">
+                        <div class="hesap-label">Kayıt tarihi</div>
+                        <div class="hesap-readonly" id="roKayit">—</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="hesap-label">Son giriş</div>
+                        <div class="hesap-readonly" id="roSonGiris">—</div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success fw-bold px-4" id="btnProfilKaydet">
+                    <i class="fas fa-save me-1"></i> Bilgileri kaydet
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="hesap-card">
+            <h2><i class="fas fa-key me-2 text-primary"></i>Şifre değiştir</h2>
+            <p class="small text-muted mb-3">Mevcut ve yeni şifrenizi girin. Kayıtlı <strong>e-postanıza</strong> onay bağlantısı gider; <strong>linke tıklayana kadar eski şifreniz geçerlidir</strong> (bağlantı yaklaşık 1 saat geçerli). Maili görmezseniz spam klasörüne bakın; bu sayfadan da onay mailini yeniden gönderebilirsiniz. Yeni şifre en az 6 karakter olmalıdır.</p>
+            <form id="formSifre">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="inpMevcutSifre">Mevcut şifre</label>
+                    <div class="password-field-wrap">
+                        <input type="password" class="form-control" id="inpMevcutSifre" required autocomplete="current-password" />
+                        <button type="button" class="btn-toggle-sifre" data-pw-toggle aria-label="Şifreyi göster" title="Şifreyi göster"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="inpYeniSifre">Yeni şifre</label>
+                    <div class="password-field-wrap">
+                        <input type="password" class="form-control" id="inpYeniSifre" required minlength="6" autocomplete="new-password" />
+                        <button type="button" class="btn-toggle-sifre" data-pw-toggle aria-label="Şifreyi göster" title="Şifreyi göster"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="inpYeniSifre2">Yeni şifre (tekrar)</label>
+                    <div class="password-field-wrap">
+                        <input type="password" class="form-control" id="inpYeniSifre2" required minlength="6" autocomplete="new-password" />
+                        <button type="button" class="btn-toggle-sifre" data-pw-toggle aria-label="Şifreyi göster" title="Şifreyi göster"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-outline-primary fw-bold px-4" id="btnSifreKaydet">
+                    <i class="fas fa-lock me-1"></i> Şifreyi güncelle
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const authHeaders = () => ({
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+    });
+
+    const alertEl = document.getElementById('hesapAlert');
+    function showAlert(kind, text) {
+        alertEl.className = 'alert alert-' + kind + ' mb-3';
+        alertEl.textContent = text;
+        alertEl.classList.remove('d-none');
+    }
+    function hideAlert() {
+        alertEl.classList.add('d-none');
+    }
+
+    function trDate(d) {
+        if (!d) return '—';
+        try {
+            return new Date(d).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' });
+        } catch { return '—'; }
+    }
+
+    async function profilYukle() {
+        hideAlert();
+        const res = await fetch('/api/Auth/profil', { headers: authHeaders() });
+        if (res.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = '/Home/Login';
+            return;
+        }
+        if (!res.ok) {
+            showAlert('danger', 'Profil yüklenemedi.');
+            return;
+        }
+        const p = await res.json();
+        document.getElementById('profilYukleniyor').classList.add('d-none');
+        document.getElementById('formProfil').classList.remove('d-none');
+        document.getElementById('roEmail').textContent = p.email || '—';
+        document.getElementById('inpAdSoyad').value = p.adSoyad || '';
+        document.getElementById('inpTelefon').value = p.telefon || '';
+        document.getElementById('roKayit').textContent = trDate(p.kayitTarihi);
+        document.getElementById('roSonGiris').textContent = trDate(p.sonGirisTarihi);
+        var uy = document.getElementById('emailOnayUyari');
+        if (uy) uy.classList.toggle('d-none', p.emailOnayli !== false);
+
+        var so = document.getElementById('sifreOnayBekUyari');
+        var soLine = document.getElementById('sifreOnaySonSatir');
+        var soRes = document.getElementById('sifreOnayYenileSonuc');
+        if (soRes) soRes.textContent = '';
+        if (p.sifreDegisikligiOnayBekliyor) {
+            so.classList.remove('d-none');
+            if (p.sifreOnaySonUtc && soLine) {
+                soLine.textContent = 'Bağlantının son geçerliliği: ' + trDate(p.sifreOnaySonUtc) + ' (yerel saat).';
+                soLine.classList.remove('d-none');
+            } else if (soLine) {
+                soLine.classList.add('d-none');
+            }
+        } else if (so) {
+            so.classList.add('d-none');
+        }
+    }
+
+    document.getElementById('formProfil').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        hideAlert();
+        const body = {
+            adSoyad: document.getElementById('inpAdSoyad').value.trim(),
+            telefon: document.getElementById('inpTelefon').value.trim() || null
+        };
+        const res = await fetch('/api/Auth/profil', {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                const ad = body.adSoyad;
+                const un = document.getElementById('userName');
+                const ui = document.getElementById('userInitial');
+                if (un) un.textContent = ad;
+                if (ui) ui.textContent = ad ? ad.charAt(0).toUpperCase() : '?';
+            }
+            showAlert('success', data.message || 'Kaydedildi.');
+        } else {
+            showAlert('danger', data.message || 'Kayıt başarısız.');
+        }
+    });
+
+    document.getElementById('formSifre').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        hideAlert();
+        const y1 = document.getElementById('inpYeniSifre').value;
+        const y2 = document.getElementById('inpYeniSifre2').value;
+        if (y1 !== y2) {
+            showAlert('warning', 'Yeni şifreler eşleşmiyor.');
+            return;
+        }
+        const body = {
+            mevcutSifre: document.getElementById('inpMevcutSifre').value,
+            yeniSifre: y1
+        };
+        const res = await fetch('/api/Auth/sifre-degistir', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+            showAlert('success', data.message || 'İstek tamamlandı.');
+            document.getElementById('formSifre').reset();
+            await profilYukle();
+        } else {
+            showAlert('danger', data.message || 'Şifre güncellenemedi.');
+        }
+    });
+
+    document.getElementById('btnYenileSifreOnay').addEventListener('click', async function () {
+        hideAlert();
+        var soRes = document.getElementById('sifreOnayYenileSonuc');
+        if (soRes) soRes.textContent = 'Gönderiliyor…';
+        try {
+            var r = await fetch('/api/Auth/sifre-degistir-onay-yenile', { method: 'POST', headers: authHeaders() });
+            var d = await r.json().catch(function () { return {}; });
+            if (soRes) soRes.textContent = d.message || (r.ok ? 'Tamam.' : 'İşlem başarısız.');
+            if (r.ok) await profilYukle();
+            else if (r.status === 401) {
+                localStorage.removeItem('token');
+                window.location.href = '/Home/Login';
+            }
+        } catch {
+            if (soRes) soRes.textContent = 'Bağlantı hatası.';
+        }
+    });
+
+    document.querySelectorAll('[data-pw-toggle]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var wrap = btn.closest('.password-field-wrap');
+            if (!wrap) return;
+            var input = wrap.querySelector('input');
+            var icon = btn.querySelector('i');
+            if (!input || !icon) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+                btn.setAttribute('aria-label', 'Şifreyi gizle');
+                btn.setAttribute('title', 'Şifreyi gizle');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+                btn.setAttribute('aria-label', 'Şifreyi göster');
+                btn.setAttribute('title', 'Şifreyi göster');
+            }
+        });
+    });
+
+    profilYukle();
+})();
+</script>
+}

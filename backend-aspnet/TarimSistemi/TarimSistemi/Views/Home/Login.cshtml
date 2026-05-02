@@ -145,6 +145,29 @@
             padding-left: 36px;
         }
 
+        .input-icon-wrap.input-password-wrap .form-control {
+            padding-right: 42px;
+        }
+
+        .btn-toggle-sifre {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #888;
+            padding: 6px 10px;
+            cursor: pointer;
+            line-height: 1;
+            border-radius: 8px;
+        }
+
+        .btn-toggle-sifre:hover {
+            color: #2e7d32;
+            background: rgba(46, 125, 50, 0.08);
+        }
+
         @@media (max-width: 600px) {
             .auth-left { display: none; }
             .auth-right { width: 100%; }
@@ -176,6 +199,16 @@
 
             <div id="errorMessage" class="alert alert-danger d-none py-2" style="font-size:0.85rem;"></div>
 
+            <div id="dogrulamaYenilePanel" class="alert alert-light border d-none py-2 mb-3" style="font-size:0.82rem;">
+                <div class="fw-semibold mb-1"><i class="fas fa-envelope-open-text me-1 text-success"></i>Doğrulama e-postası</div>
+                <p class="mb-2 text-muted small">Kayıt e-postanızdaki bağlantıya tıklayın. Gelmiyorsa aşağıdan yeniden gönderin.</p>
+                <div class="input-group input-group-sm">
+                    <input type="email" class="form-control" id="yenileEmail" placeholder="Kayıtlı e-posta" />
+                    <button type="button" class="btn btn-outline-success" id="btnYenileEmail">Gönder</button>
+                </div>
+                <div id="yenileSonuc" class="small mt-2 d-none"></div>
+            </div>
+
             <form id="loginForm">
                 <div class="mb-3">
                     <label class="form-label">E-posta</label>
@@ -186,10 +219,16 @@
                 </div>
                 <div class="mb-4">
                     <label class="form-label">Şifre</label>
-                    <div class="input-icon-wrap">
+                    <div class="input-icon-wrap input-password-wrap">
                         <i class="fas fa-lock"></i>
-                        <input type="password" class="form-control" id="sifre" placeholder="••••••••" required />
+                        <input type="password" class="form-control" id="sifre" placeholder="••••••••" required autocomplete="current-password" />
+                        <button type="button" class="btn-toggle-sifre" aria-label="Şifreyi göster" title="Şifreyi göster">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
                     </div>
+                </div>
+                <div class="text-end mb-3">
+                    <a href="/Home/SifreSifirla" class="small text-success fw-semibold text-decoration-none">Şifremi unuttum</a>
                 </div>
                 <button type="submit" class="btn btn-auth mb-3">
                     <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
@@ -199,6 +238,9 @@
             <div class="text-center" style="font-size:0.85rem;">
                 <span class="text-muted">Hesabın yok mu?</span>
                 <a href="/Home/Kayit" class="text-success fw-bold text-decoration-none ms-1">Kayıt Ol</a>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0" id="btnToggleYenile">E-postamı doğrulayamıyorum</button>
+                </div>
             </div>
         </div>
     </div>
@@ -233,6 +275,11 @@
                     const err = document.getElementById('errorMessage');
                     err.textContent = data.message;
                     err.classList.remove('d-none');
+                    const panel = document.getElementById('dogrulamaYenilePanel');
+                    if (data.message && /doğrulanmadı|doğrulama/i.test(data.message)) {
+                        panel.classList.remove('d-none');
+                        document.getElementById('yenileEmail').value = email;
+                    }
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Giriş Yap';
                 }
@@ -243,6 +290,58 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Giriş Yap';
             }
+        });
+
+        document.getElementById('btnToggleYenile').addEventListener('click', function () {
+            document.getElementById('dogrulamaYenilePanel').classList.toggle('d-none');
+        });
+
+        document.getElementById('btnYenileEmail').addEventListener('click', async function () {
+            const em = document.getElementById('yenileEmail').value.trim();
+            const out = document.getElementById('yenileSonuc');
+            if (!em) {
+                out.textContent = 'E-posta girin.';
+                out.className = 'small mt-2 text-danger';
+                out.classList.remove('d-none');
+                return;
+            }
+            out.classList.add('d-none');
+            try {
+                const r = await fetch('/api/Auth/email-dogrulama-yenile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: em })
+                });
+                const d = await r.json();
+                out.textContent = d.message || 'İstek tamamlandı.';
+                out.className = 'small mt-2 text-success';
+                out.classList.remove('d-none');
+            } catch {
+                out.textContent = 'İstek gönderilemedi.';
+                out.className = 'small mt-2 text-danger';
+                out.classList.remove('d-none');
+            }
+        });
+
+        document.querySelectorAll('.btn-toggle-sifre').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var wrap = btn.closest('.input-password-wrap');
+                if (!wrap) return;
+                var input = wrap.querySelector('input');
+                var icon = btn.querySelector('i');
+                if (!input || !icon) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.replace('fa-eye', 'fa-eye-slash');
+                    btn.setAttribute('aria-label', 'Şifreyi gizle');
+                    btn.setAttribute('title', 'Şifreyi gizle');
+                } else {
+                    input.type = 'password';
+                    icon.classList.replace('fa-eye-slash', 'fa-eye');
+                    btn.setAttribute('aria-label', 'Şifreyi göster');
+                    btn.setAttribute('title', 'Şifreyi göster');
+                }
+            });
         });
     </script>
 </body>

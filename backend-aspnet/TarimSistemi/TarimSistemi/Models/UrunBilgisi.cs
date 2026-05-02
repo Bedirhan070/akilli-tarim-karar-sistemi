@@ -36,5 +36,6 @@ namespace TarimSistemi.Models
 
         // İlişki
         public ICollection<Oneri> Oneriler { get; set; }
+        public ICollection<Lokasyon> Lokasyonlar { get; set; } = new List<Lokasyon>();
     }
 }

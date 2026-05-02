@@ -2,6 +2,40 @@
     return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') };
 }
 
+let urunlerCache = [];
+
+function escapeHtml(s) {
+    if (s == null || s === '') return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function urunSecenekleriHtml(seciliId) {
+    if (!urunlerCache.length) {
+        return '<option value="">Ürün listesi yüklenemedi</option>';
+    }
+    let h = '<option value="">— Ürün seçin —</option>';
+    urunlerCache.forEach(u => {
+        const sel = seciliId != null && Number(seciliId) === Number(u.urunId) ? ' selected' : '';
+        h += `<option value="${u.urunId}"${sel}>${escapeHtml(u.urunAdi)}</option>`;
+    });
+    return h;
+}
+
+async function loadUrunler() {
+    const sel = document.getElementById('fUrun');
+    try {
+        const res = await fetch('/api/Urun', { headers: tarlaAuthHeaders() });
+        if (!res.ok) throw new Error();
+        urunlerCache = await res.json();
+        if (sel) sel.innerHTML = urunSecenekleriHtml(null);
+    } catch {
+        urunlerCache = [];
+        if (sel) sel.innerHTML = '<option value="">Liste alınamadı</option>';
+    }
+}
+
 /* ── İl/İlçe Verisi ─────────────────────────────────────────────────────── */
 const turkiye = [
   { ad:"Adana",           lat:37.00, lon:35.32, ilceler:["Aladağ","Ceyhan","Çukurova","Feke","İmamoğlu","Karaisalı","Karataş","Kozan","Pozantı","Saimbeyli","Sarıçam","Seyhan","Tufanbeyli","Yumurtalık","Yüreğir"] },
@@ -255,6 +289,8 @@ function resetForm(removeMarker) {
     document.getElementById('fEnlem').value = '';
     document.getElementById('fBoylam').value= '';
     document.getElementById('fIsim').value  = '';
+    const fu = document.getElementById('fUrun');
+    if (fu) fu.selectedIndex = 0;
     document.getElementById('konumEmpty').classList.remove('d-none');
     document.getElementById('konumFilled').classList.add('d-none');
     document.getElementById('btnKaydet').disabled = true;
@@ -277,9 +313,11 @@ document.getElementById('btnKaydet').addEventListener('click', async () => {
 
     const btn = document.getElementById('btnKaydet');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Kaydediliyor...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Kaydediliyor…';
 
     try {
+        const fu = document.getElementById('fUrun');
+        const rawUrun = fu && fu.value ? parseInt(fu.value, 10) : NaN;
         const res = await fetch('/api/Lokasyon', {
             method: 'POST',
             headers: tarlaAuthHeaders(),
@@ -288,15 +326,17 @@ document.getElementById('btnKaydet').addEventListener('click', async () => {
                 sehir:  il,
                 ilce:   ilce,
                 enlem:  parseFloat(enlem),
-                boylam: parseFloat(boylam)
+                boylam: parseFloat(boylam),
+                urunId: Number.isFinite(rawUrun) ? rawUrun : null
             })
         });
 
         if (res.ok) {
-            btn.innerHTML = '<i class="fas fa-check me-1"></i>Kaydedildi!';
+            btn.innerHTML = '<i class="fas fa-check me-2"></i>Kaydedildi!';
             setTimeout(() => {
-                btn.innerHTML = '<i class="fas fa-save me-1"></i>Tarla Olarak Kaydet';
+                btn.innerHTML = '<i class="fas fa-save me-2"></i>Tarlayı kaydet';
             }, 1500);
+            btn.disabled = false;
             errEl.classList.add('d-none');
             loadTarlalar();
         } else {
@@ -304,13 +344,13 @@ document.getElementById('btnKaydet').addEventListener('click', async () => {
             errEl.textContent = d.message || 'Kayıt başarısız';
             errEl.classList.remove('d-none');
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save me-1"></i>Tarla Olarak Kaydet';
+            btn.innerHTML = '<i class="fas fa-save me-2"></i>Tarlayı kaydet';
         }
     } catch {
         errEl.textContent = 'Sunucuya bağlanılamadı';
         errEl.classList.remove('d-none');
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-1"></i>Tarla Olarak Kaydet';
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Tarlayı kaydet';
     }
 });
 
@@ -322,31 +362,46 @@ async function loadTarlalar() {
         renderTarlalar(data);
     } catch {
         document.getElementById('tarlaListesi').innerHTML =
-            '<div class="text-muted" style="font-size:0.82rem;">Veriler yüklenemedi</div>';
+            '<div class="alert alert-warning small mb-0" style="border-radius:10px;">Tarlalar yüklenemedi. Sayfayı yenileyin.</div>';
     }
 }
 
 function renderTarlalar(data) {
-    document.getElementById('tarlaCount').textContent = data.length;
+    const n = data.length;
+    const countEl = document.getElementById('tarlaCount');
+    if (countEl) countEl.textContent = n === 1 ? '1 tarla' : n + ' tarla';
     const el = document.getElementById('tarlaListesi');
     if (data.length === 0) {
-        el.innerHTML = `<div style="background:#f9f9f9;border-radius:10px;padding:20px;text-align:center;color:#ccc;font-size:0.83rem;">
-            <i class="fas fa-seedling fa-2x mb-2 d-block"></i>Henüz tarla yok
-        </div>`;
+        el.innerHTML = `
+            <div class="tarla-bos-durum">
+                <i class="fas fa-map-marked-alt"></i>
+                Henüz kayıtlı tarlanız yok<br>
+                <span class="small d-inline-block mt-2" style="color:#999;">Haritadan il ve ilçe seçip yukarıdaki formdan kaydedin.</span>
+            </div>`;
         return;
     }
-    el.innerHTML = data.map(l => `
-        <div class="tarla-item">
-            <button class="btn-sil" onclick="silTarla(${l.lokasyonId})" title="Sil">
-                <i class="fas fa-trash"></i>
+    el.innerHTML = data.map(l => {
+        const urunYok = !l.urunId;
+        const etiket = urunYok
+            ? '<span class="tarla-urun-etiket yok"><i class="fas fa-exclamation-circle me-1"></i>Ürün yok — Dashboard analizi için seçin</span>'
+            : `<span class="tarla-urun-etiket var"><i class="fas fa-leaf me-1"></i>${escapeHtml(l.urunAdi || 'Ürün')}</span>`;
+        return `
+        <div class="tarla-kart${urunYok ? ' tarla-kart--urunyok' : ''}">
+            <button type="button" class="btn-sil-tarla" onclick="silTarla(${l.lokasyonId})" title="Bu tarlayı sil" aria-label="Tarlayı sil">
+                <i class="fas fa-trash-alt"></i>
             </button>
-            <div class="tarla-item-name">${l.isim || 'İsimsiz Tarla'}</div>
-            <div class="tarla-item-info">
-                <i class="fas fa-map-marker-alt me-1 text-success"></i>
-                ${l.sehir}${l.ilce ? ' / ' + l.ilce : ''}
+            <div class="tarla-kart-name">${escapeHtml(l.isim || 'İsimsiz tarla')}</div>
+            ${etiket}
+            <div class="tarla-kart-yer">
+                <i class="fas fa-map-pin"></i>
+                <span>${escapeHtml(l.sehir)}${l.ilce ? ' · ' + escapeHtml(l.ilce) : ''}</span>
             </div>
-        </div>
-    `).join('');
+            <label class="form-label-urun" for="urun-sel-${l.lokasyonId}">Ürün seç / değiştir</label>
+            <select id="urun-sel-${l.lokasyonId}" class="form-select form-select-sm tarla-urun-select" data-lokasyon-id="${l.lokasyonId}">
+                ${urunSecenekleriHtml(l.urunId)}
+            </select>
+        </div>`;
+    }).join('');
 }
 
 async function silTarla(id) {
@@ -356,12 +411,43 @@ async function silTarla(id) {
     else alert('Silme işlemi başarısız');
 }
 
-/* ── Başlat ──────────────────────────────────────────────────────────────── */
-ilMarkerlariniGoster();
-loadTarlalar();
-requestAnimationFrame(() => {
-    haritaBoyutunuGuncelle();
-    setTimeout(haritaBoyutunuGuncelle, 150);
-    setTimeout(haritaBoyutunuGuncelle, 400);
+document.getElementById('tarlaListesi').addEventListener('change', async (e) => {
+    const sel = e.target.closest('.tarla-urun-select');
+    if (!sel) return;
+    const id = parseInt(sel.getAttribute('data-lokasyon-id'), 10);
+    const v = sel.value;
+    const urunId = v === '' ? null : parseInt(v, 10);
+    sel.disabled = true;
+    try {
+        const res = await fetch(`/api/Lokasyon/${id}/urun`, {
+            method: 'PATCH',
+            headers: tarlaAuthHeaders(),
+            body: JSON.stringify({ urunId: Number.isFinite(urunId) ? urunId : null })
+        });
+        if (res.ok) {
+            await loadTarlalar();
+        } else {
+            const d = await res.json().catch(() => ({}));
+            alert(d.message || 'Ürün güncellenemedi');
+            await loadTarlalar();
+        }
+    } catch {
+        alert('Bağlantı hatası');
+        await loadTarlalar();
+    } finally {
+        sel.disabled = false;
+    }
 });
+
+/* ── Başlat ──────────────────────────────────────────────────────────────── */
+(async function baslat() {
+    await loadUrunler();
+    ilMarkerlariniGoster();
+    await loadTarlalar();
+    requestAnimationFrame(() => {
+        haritaBoyutunuGuncelle();
+        setTimeout(haritaBoyutunuGuncelle, 150);
+        setTimeout(haritaBoyutunuGuncelle, 400);
+    });
+})();
 window.addEventListener('resize', haritaBoyutunuGuncelle);

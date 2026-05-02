@@ -88,6 +88,29 @@
             padding-left: 36px;
         }
 
+        .input-icon-wrap.input-password-wrap .form-control {
+            padding-right: 42px;
+        }
+
+        .btn-toggle-sifre {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #888;
+            padding: 6px 10px;
+            cursor: pointer;
+            line-height: 1;
+            border-radius: 8px;
+        }
+
+        .btn-toggle-sifre:hover {
+            color: #2e7d32;
+            background: rgba(46, 125, 50, 0.08);
+        }
+
         .btn-auth {
             background: linear-gradient(135deg, #2e7d32, #4caf50);
             border: none;
@@ -148,16 +171,22 @@
             <div class="row-form mb-3">
                 <div>
                     <label class="form-label">Şifre</label>
-                    <div class="input-icon-wrap">
+                    <div class="input-icon-wrap input-password-wrap">
                         <i class="fas fa-lock"></i>
-                        <input type="password" class="form-control" id="sifre" placeholder="Min. 6 karakter" required minlength="6" />
+                        <input type="password" class="form-control" id="sifre" placeholder="Min. 6 karakter" required minlength="6" autocomplete="new-password" />
+                        <button type="button" class="btn-toggle-sifre" aria-label="Şifreyi göster" title="Şifreyi göster">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
                 <div>
                     <label class="form-label">Şifre Tekrar</label>
-                    <div class="input-icon-wrap">
+                    <div class="input-icon-wrap input-password-wrap">
                         <i class="fas fa-lock"></i>
-                        <input type="password" class="form-control" id="sifreTekrar" placeholder="Tekrar girin" required minlength="6" />
+                        <input type="password" class="form-control" id="sifreTekrar" placeholder="Tekrar girin" required minlength="6" autocomplete="new-password" />
+                        <button type="button" class="btn-toggle-sifre" aria-label="Şifreyi göster" title="Şifreyi göster">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -170,6 +199,7 @@
         <div class="text-center" style="font-size:0.85rem;">
             <span class="text-muted">Zaten hesabın var mı?</span>
             <a href="/Home/Login" class="text-success fw-bold text-decoration-none ms-1">Giriş Yap</a>
+            <div class="mt-2"><a href="/Home/Login" class="text-muted small">Doğrulama e-postası gelmediyse giriş sayfasından yeniden isteyebilirsiniz.</a></div>
         </div>
     </div>
 
@@ -210,9 +240,14 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    sucEl.textContent = 'Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...';
+                    sucEl.innerHTML = '<strong>' + (data.message || 'Kayıt alındı.') + '</strong>'
+                        + '<p class="mb-2 mt-2 small mb-0">Hesabınızı kullanmak için e-postanızdaki <strong>doğrulama bağlantısına</strong> tıklamanız gerekir.</p>'
+                        + '<ul class="small mb-3 ps-3 text-start mb-0"><li>Konu satırında «e-posta doğrulama» benzeri bir başlık arayın.</li>'
+                        + '<li>Gelen kutusu ve <strong>spam / gereksiz</strong> klasörüne bakın; ileti birkaç dakika gecikebilir.</li>'
+                        + '<li>Bağlantıya tıklamadan giriş yapamazsınız. Mail gelmezse <a href="/Home/Login" class="text-success fw-semibold">giriş sayfasından</a> doğrulama e-postasını yeniden isteyin.</li></ul>'
+                        + '<div><a href="/Home/Login" class="btn btn-outline-success btn-sm">Giriş sayfasına git</a></div>';
                     sucEl.classList.remove('d-none');
-                    setTimeout(() => window.location.href = '/Home/Login', 1800);
+                    document.getElementById('kayitForm').classList.add('d-none');
                 } else {
                     errEl.textContent = data.message;
                     errEl.classList.remove('d-none');
@@ -225,6 +260,27 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Kayıt Ol';
             }
+        });
+
+        document.querySelectorAll('.btn-toggle-sifre').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var wrap = btn.closest('.input-password-wrap');
+                if (!wrap) return;
+                var input = wrap.querySelector('input');
+                var icon = btn.querySelector('i');
+                if (!input || !icon) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.replace('fa-eye', 'fa-eye-slash');
+                    btn.setAttribute('aria-label', 'Şifreyi gizle');
+                    btn.setAttribute('title', 'Şifreyi gizle');
+                } else {
+                    input.type = 'password';
+                    icon.classList.replace('fa-eye-slash', 'fa-eye');
+                    btn.setAttribute('aria-label', 'Şifreyi göster');
+                    btn.setAttribute('title', 'Şifreyi göster');
+                }
+            });
         });
     </script>
 </body>

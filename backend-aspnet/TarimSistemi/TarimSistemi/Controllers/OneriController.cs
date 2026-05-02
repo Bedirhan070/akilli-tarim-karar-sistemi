@@ -35,6 +35,8 @@ namespace TarimSistemi.Controllers
                     o.RiskTipi,
                     o.TavsiyeMetni,
                     o.OlusturulmaZamani,
+                    o.UrunId,
+                    UrunAdi = o.UrunBilgisi != null ? o.UrunBilgisi.UrunAdi : null,
                     LokasyonAdi = o.Lokasyon.Isim ?? o.Lokasyon.Sehir
                 })
                 .ToListAsync();
@@ -58,7 +60,9 @@ namespace TarimSistemi.Controllers
                     o.RiskSkoru,
                     o.RiskTipi,
                     o.TavsiyeMetni,
-                    o.OlusturulmaZamani
+                    o.OlusturulmaZamani,
+                    o.UrunId,
+                    UrunAdi = o.UrunBilgisi != null ? o.UrunBilgisi.UrunAdi : null
                 })
                 .ToListAsync();
 

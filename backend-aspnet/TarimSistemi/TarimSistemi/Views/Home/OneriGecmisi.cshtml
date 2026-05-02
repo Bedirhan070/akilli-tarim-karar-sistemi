@@ -97,13 +97,14 @@
                 <tr>
                     <th class="ps-4">TARİH</th>
                     <th>LOKASYON</th>
+                    <th>ÜRÜN</th>
                     <th>RİSK SEVİYESİ</th>
                     <th>RİSK SKORU</th>
                     <th>TAVSİYE</th>
                 </tr>
             </thead>
             <tbody id="oneriBody">
-                <tr><td colspan="5" class="text-center text-muted py-4">
+                <tr><td colspan="6" class="text-center text-muted py-4">
                     <i class="fas fa-spinner fa-spin me-2"></i>Yükleniyor...
                 </td></tr>
             </tbody>
@@ -123,7 +124,7 @@
             renderTablo(tumOneriler);
         } catch {
             document.getElementById('oneriBody').innerHTML =
-                '<tr><td colspan="5" class="text-center text-muted py-4">Veriler yüklenemedi</td></tr>';
+                '<tr><td colspan="6" class="text-center text-muted py-4">Veriler yüklenemedi</td></tr>';
         }
     }
 
@@ -132,7 +133,7 @@
         const tbody = document.getElementById('oneriBody');
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-5">
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-5">
                 <i class="fas fa-inbox fa-2x mb-2 d-block" style="opacity:0.2"></i>
                 Henüz öneri bulunmuyor
             </td></tr>`;
@@ -155,6 +156,9 @@
                 </td>
                 <td>
                     <span style="font-size:0.85rem;">${o.lokasyonAdi || '-'}</span>
+                </td>
+                <td>
+                    <span style="font-size:0.85rem;">${o.urunAdi || '—'}</span>
                 </td>
                 <td>
                     <span class="risk-pill ${seviye}">${etiket}</span>

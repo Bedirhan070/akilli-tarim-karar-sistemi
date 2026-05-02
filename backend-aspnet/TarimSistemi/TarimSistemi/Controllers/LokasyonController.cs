@@ -36,7 +36,9 @@ namespace TarimSistemi.Controllers
                     Ilce = l.Ilce,
                     Enlem = l.Enlem,
                     Boylam = l.Boylam,
-                    KayitTarihi = l.KayitTarihi
+                    KayitTarihi = l.KayitTarihi,
+                    UrunId = l.UrunId,
+                    UrunAdi = l.UrunBilgisi != null ? l.UrunBilgisi.UrunAdi : null
                 })
                 .ToListAsync();
 
@@ -49,6 +51,13 @@ namespace TarimSistemi.Controllers
         {
             var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
+            if (dto.UrunId.HasValue)
+            {
+                var urunGecerli = await _context.UrunBilgileri.AnyAsync(u => u.UrunId == dto.UrunId.Value);
+                if (!urunGecerli)
+                    return BadRequest(new { message = "Geçersiz ürün seçimi" });
+            }
+
             var lokasyon = new Lokasyon
             {
                 KullaniciId = kullaniciId,
@@ -57,11 +66,21 @@ namespace TarimSistemi.Controllers
                 Ilce = dto.Ilce,
                 Enlem = dto.Enlem,
                 Boylam = dto.Boylam,
-                KayitTarihi = DateTime.Now
+                KayitTarihi = DateTime.Now,
+                UrunId = dto.UrunId
             };
 
             _context.Lokasyonlar.Add(lokasyon);
             await _context.SaveChangesAsync();
+
+            string? urunAdi = null;
+            if (lokasyon.UrunId.HasValue)
+            {
+                urunAdi = await _context.UrunBilgileri
+                    .Where(u => u.UrunId == lokasyon.UrunId.Value)
+                    .Select(u => u.UrunAdi)
+                    .FirstOrDefaultAsync();
+            }
 
             return Ok(new LokasyonResponseDto
             {
@@ -71,7 +90,54 @@ namespace TarimSistemi.Controllers
                 Ilce = lokasyon.Ilce,
                 Enlem = lokasyon.Enlem,
                 Boylam = lokasyon.Boylam,
-                KayitTarihi = lokasyon.KayitTarihi
+                KayitTarihi = lokasyon.KayitTarihi,
+                UrunId = lokasyon.UrunId,
+                UrunAdi = urunAdi
+            });
+        }
+
+        // PATCH /api/Lokasyon/{id}/urun
+        [HttpPatch("{id}/urun")]
+        public async Task<IActionResult> UrunAta(int id, [FromBody] LokasyonUrunPatchDto dto)
+        {
+            var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var lokasyon = await _context.Lokasyonlar.FirstOrDefaultAsync(l =>
+                l.LokasyonId == id && l.KullaniciId == kullaniciId);
+
+            if (lokasyon == null)
+                return NotFound(new { message = "Lokasyon bulunamadı" });
+
+            if (dto.UrunId.HasValue)
+            {
+                var urunGecerli = await _context.UrunBilgileri.AnyAsync(u => u.UrunId == dto.UrunId.Value);
+                if (!urunGecerli)
+                    return BadRequest(new { message = "Geçersiz ürün seçimi" });
+            }
+
+            lokasyon.UrunId = dto.UrunId;
+            await _context.SaveChangesAsync();
+
+            string? urunAdi = null;
+            if (lokasyon.UrunId.HasValue)
+            {
+                urunAdi = await _context.UrunBilgileri
+                    .Where(u => u.UrunId == lokasyon.UrunId.Value)
+                    .Select(u => u.UrunAdi)
+                    .FirstOrDefaultAsync();
+            }
+
+            return Ok(new LokasyonResponseDto
+            {
+                LokasyonId = lokasyon.LokasyonId,
+                Isim = lokasyon.Isim,
+                Sehir = lokasyon.Sehir,
+                Ilce = lokasyon.Ilce,
+                Enlem = lokasyon.Enlem,
+                Boylam = lokasyon.Boylam,
+                KayitTarihi = lokasyon.KayitTarihi,
+                UrunId = lokasyon.UrunId,
+                UrunAdi = urunAdi
             });
         }
 
@@ -103,6 +169,12 @@ namespace TarimSistemi.Controllers
         public string? Ilce { get; set; }
         public decimal Enlem { get; set; }
         public decimal Boylam { get; set; }
+        public int? UrunId { get; set; }
+    }
+
+    public class LokasyonUrunPatchDto
+    {
+        public int? UrunId { get; set; }
     }
 
     public class LokasyonResponseDto
@@ -114,5 +186,7 @@ namespace TarimSistemi.Controllers
         public decimal Enlem { get; set; }
         public decimal Boylam { get; set; }
         public DateTime KayitTarihi { get; set; }
+        public int? UrunId { get; set; }
+        public string? UrunAdi { get; set; }
     }
 }

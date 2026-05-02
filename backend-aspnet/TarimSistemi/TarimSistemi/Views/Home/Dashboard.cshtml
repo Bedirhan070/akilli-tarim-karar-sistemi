@@ -4,20 +4,135 @@
 }
 
 <style>
+    .dash-page {
+        max-width: 1420px;
+        margin: 0 auto;
+    }
+
+    .dash-hero {
+        background: linear-gradient(125deg, #e8f5e9 0%, #fff 42%, #f0f7f1 100%);
+        border: 1px solid #b2dfbc;
+        border-radius: 18px;
+        padding: 22px 26px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(26,60,46,0.08);
+    }
+
+    .dash-hero h1 {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: #1b5e20;
+        margin: 0 0 8px;
+        letter-spacing: -0.03em;
+    }
+
+    .dash-hero-desc {
+        margin: 0;
+        color: #4a6352;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        max-width: 640px;
+    }
+
+    .dash-toolbar {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px 20px;
+        border: 1px solid rgba(26,60,46,0.1);
+        box-shadow: 0 4px 22px rgba(20,40,30,0.06);
+        margin-bottom: 20px;
+    }
+
+    .dash-toolbar-inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .dash-toolbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+
+    @@media (max-width: 576px) {
+        .dash-toolbar-actions {
+            width: 100%;
+        }
+        .dash-toolbar-actions #lokasyonSecim {
+            width: 100%;
+            max-width: none;
+        }
+    }
+
+    .dash-quick {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px dashed rgba(76,175,80,0.35);
+    }
+
+    .dash-quick a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--bs-success);
+        background: #e8f5e9;
+        border: 1px solid #c8e6c9;
+        text-decoration: none;
+        transition: background 0.2s, transform 0.15s;
+    }
+
+    .dash-quick a:hover {
+        background: #c8e6c9;
+        color: #1b5e20;
+        transform: translateY(-1px);
+    }
+
+    .btn-tahmin-outline {
+        border-radius: 10px;
+        font-weight: 700;
+        border: 2px solid #42a5f5;
+        color: #1565c0;
+        padding: 8px 16px;
+    }
+
+    .btn-tahmin-outline:hover {
+        background: #e3f2fd;
+        color: #0d47a1;
+        border-color: #2196f3;
+    }
+
+    .dash-ozet {
+        border-radius: 14px !important;
+        border: 1px solid #c8e6c9 !important;
+        background: linear-gradient(90deg, #fafdfb, #fff) !important;
+    }
+
     .stat-card {
         background: white;
-        border-radius: 12px;
-        padding: 20px 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border-radius: 14px;
+        padding: 20px 22px;
+        border: 1px solid rgba(76,175,80,0.14);
+        box-shadow: 0 4px 16px rgba(20,40,30,0.05);
         display: flex;
         align-items: center;
         gap: 15px;
-        transition: transform 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(46,125,50,0.12);
     }
 
     .stat-icon {
@@ -52,9 +167,10 @@
 
     .risk-card {
         background: white;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 6px 22px rgba(20,40,30,0.06);
     }
 
     .risk-badge {
@@ -83,18 +199,20 @@
 
     .info-card {
         background: white;
-        border-radius: 12px;
-        padding: 20px 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border-radius: 16px;
+        padding: 20px 22px;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 6px 22px rgba(20,40,30,0.06);
         height: 100%;
     }
 
     .info-card h6 {
-        font-weight: 600;
-        color: #444;
+        font-weight: 800;
+        color: #2e4a38;
         border-bottom: 2px solid #e8f5e9;
-        padding-bottom: 10px;
-        margin-bottom: 15px;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+        font-size: 0.95rem;
     }
 
     .weather-item {
@@ -141,22 +259,24 @@
         background: linear-gradient(135deg, #43a047, #66bb6a);
         border: none;
         color: white;
-        padding: 10px 25px;
-        border-radius: 8px;
-        font-weight: 600;
+        padding: 10px 22px;
+        border-radius: 10px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
         transition: all 0.2s;
+        box-shadow: 0 4px 14px rgba(67,160,71,0.35);
     }
 
     .btn-analiz:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(76,175,80,0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(76,175,80,0.45);
         color: white;
     }
 
     .placeholder-chart {
         background: #f5f5f5;
         border-radius: 8px;
-        height: 150px;
+        min-height: 120px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -164,28 +284,238 @@
         font-size: 0.85rem;
         flex-direction: column;
         gap: 8px;
+        padding: 16px;
     }
 
+    .tahmin-risk-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+        font-size: 0.78rem;
+    }
+    .tahmin-risk-row .lbl {
+        width: 88px;
+        flex-shrink: 0;
+        color: #666;
+        font-weight: 600;
+    }
+    .tahmin-risk-bar-wrap {
+        flex: 1;
+        height: 10px;
+        background: #eee;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .tahmin-risk-bar {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.35s ease;
+    }
+    .tahmin-table th { font-size: 0.72rem; color: #888; }
+    .tahmin-table td { font-size: 0.8rem; vertical-align: middle; }
+    .pill-risk { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .pill-risk.dusuk { background: #e8f5e9; color: #2e7d32; }
+    .pill-risk.uyari { background: #fff8e1; color: #e65100; }
+    .pill-risk.kritik { background: #ffebee; color: #c62828; }
+
     #lokasyonSecim {
-        border-radius: 8px;
-        border: 1.5px solid #c8e6c9;
+        border-radius: 10px;
+        border: 2px solid #c8e6c9;
         font-size: 0.9rem;
+        font-weight: 600;
+        min-width: 200px;
+        max-width: 280px;
+    }
+
+    /* Bölüm hedefleri: üst çubuk altında kalsın */
+    .dash-section-anchor {
+        scroll-margin-top: 80px;
+    }
+
+    .dash-section-head {
+        background: linear-gradient(135deg, #e8f5e9 0%, #fff 100%);
+        border: 1px solid #c8e6c9;
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 12px rgba(46,125,50,0.06);
+    }
+
+    .dash-section-head.tahmin-head {
+        background: linear-gradient(135deg, #e3f2fd 0%, #fff 100%);
+        border-color: #bbdefb;
+    }
+
+    .dash-section-head .dash-ikon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        margin-right: 12px;
+        vertical-align: middle;
+    }
+
+    .dash-section-head .dash-ikon.anlik { background: #fff8e1; color: #f57c00; }
+    .dash-section-head .dash-ikon.tahmin { background: #e3f2fd; color: #1565c0; }
+
+    .dash-section-head .baslik-metin {
+        display: inline-block;
+        vertical-align: middle;
+        max-width: calc(100% - 58px);
+    }
+
+    .dash-section-head h2 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1b5e20;
+        margin: 0;
+    }
+
+    .dash-section-head.tahmin-head h2 { color: #0d47a1; }
+
+    .dash-section-head p {
+        margin: 4px 0 0;
+        font-size: 0.84rem;
+        color: #666;
+        line-height: 1.4;
+    }
+
+    .analiz-merkez-kart {
+        display: block;
+        border-radius: 16px;
+        padding: 20px 22px;
+        text-decoration: none;
+        color: inherit;
+        border: 2px solid transparent;
+        box-shadow: 0 6px 22px rgba(20,40,30,0.07);
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        height: 100%;
+        background: #fff;
+    }
+
+    .analiz-merkez-kart:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 14px 36px rgba(46,125,50,0.14);
+        color: inherit;
+    }
+
+    .analiz-merkez-kart--anlik { border-color: #a5d6a7; }
+    .analiz-merkez-kart--anlik:hover { border-color: #4caf50; }
+
+    .analiz-merkez-kart--tahmin { border-color: #90caf9; }
+    .analiz-merkez-kart--tahmin:hover { border-color: #2196f3; }
+
+    .analiz-merkez-kart .am-ikon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        margin-bottom: 12px;
+    }
+
+    .analiz-merkez-kart--anlik .am-ikon { background: #e8f5e9; color: #2e7d32; }
+    .analiz-merkez-kart--tahmin .am-ikon { background: #e3f2fd; color: #1565c0; }
+
+    .analiz-merkez-kart h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #222;
+        margin: 0 0 6px;
+    }
+
+    .analiz-merkez-kart p {
+        font-size: 0.86rem;
+        color: #666;
+        margin: 0;
+        line-height: 1.45;
+    }
+
+    .analiz-merkez-kart .am-ok {
+        margin-top: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #2e7d32;
+    }
+
+    .analiz-merkez-kart--tahmin .am-ok { color: #1565c0; }
+
+    @@keyframes dashSectionFlash {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(76,175,80,0); }
+        40% { box-shadow: 0 0 0 4px rgba(76,175,80,0.35); }
+    }
+
+    .dash-section-anchor.dash-flash .dash-section-head {
+        animation: dashSectionFlash 1.1s ease;
     }
 </style>
 
-<!-- Lokasyon Seçim Alanı -->
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h5 class="mb-1" style="font-weight:700; color:#2e7d32;">Hoş geldiniz!</h5>
-        <small class="text-muted">Analiz yapmak istediğiniz tarlayı seçin</small>
+<div class="dash-page">
+
+<div class="dash-hero">
+    <h1>Karar destek paneli</h1>
+    <p class="dash-hero-desc">Tarlanızı seçin, bugünkü riski ve haftalık hava özetini tek ekranda görün. Aşağıdaki yeşil ve mavi bölümler menüdeki <strong>Bugünkü risk</strong> ve <strong>7 günlük tahmin</strong> ile aynı yerlere kaydırır.</p>
+    <small class="text-dark fw-semibold d-block mt-2" id="seciliTarlaBaslik" style="font-size:0.86rem;"></small>
+</div>
+
+<div class="dash-toolbar">
+    <div class="dash-toolbar-inner">
+        <label for="lokasyonSecim" class="small text-muted fw-semibold mb-0 d-block d-md-inline me-md-2">Tarla</label>
+        <div class="dash-toolbar-actions flex-grow-1 justify-content-md-end">
+            <select class="form-select form-select-sm" id="lokasyonSecim">
+                <option value="">-- Tarla seçin --</option>
+            </select>
+            <button type="button" class="btn btn-analiz btn-sm" id="btnAnalize">
+                <i class="fas fa-play me-1"></i> Analiz et
+            </button>
+            <button type="button" class="btn btn-sm btn-tahmin-outline" id="btnTahminYukle" title="Hava API 7 günlük tahmin">
+                <i class="fas fa-calendar-week me-1"></i> 7 gün tahmin
+            </button>
+        </div>
     </div>
-    <div class="d-flex gap-2 align-items-center">
-        <select class="form-select form-select-sm" id="lokasyonSecim" style="width:200px;">
-            <option value="">-- Tarla Seçin --</option>
-        </select>
-        <button class="btn btn-analiz btn-sm" id="btnAnalize">
-            <i class="fas fa-play me-1"></i> Analiz Et
-        </button>
+    <div class="dash-quick">
+        <a href="/Home/Lokasyonlar"><i class="fas fa-map-marked-alt"></i>Tarlalarım</a>
+        <a href="/Home/OneriGecmisi"><i class="fas fa-history"></i>Öneri geçmişi</a>
+    </div>
+</div>
+
+<div id="tarlaOzeti" class="alert alert-light border dash-ozet mb-4 d-none py-2 px-3" style="font-size:0.86rem;">
+    <div class="d-flex flex-wrap align-items-start gap-2 justify-content-between">
+        <div>
+            <span class="text-muted me-1">Seçili ürün:</span>
+            <strong id="ozetUrunAd" class="text-dark">—</strong>
+            <div class="text-muted mt-1" id="ozetUrunDetay" style="font-size:0.8rem;max-width:520px;"></div>
+        </div>
+        <span id="ozetUrunUyari" class="badge bg-warning text-dark d-none">Ürün atanmadı</span>
+    </div>
+</div>
+
+<!-- Çiftçi: ne yapacağını seçsin -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="small text-muted fw-semibold text-uppercase mb-2" style="letter-spacing:0.04em;">Ne yapmak istiyorsunuz?</div>
+    </div>
+    <div class="col-md-6">
+        <a href="#analiz-anlik" class="analiz-merkez-kart analiz-merkez-kart--anlik" id="kartGitAnlik" aria-label="Bugünkü risk bölümüne git">
+            <div class="am-ikon"><i class="fas fa-bolt"></i></div>
+            <h3>Bugünkü riski görmek istiyorum</h3>
+            <p>Üstten tarlanızı seçin, <strong>Analiz Et</strong>’e basın. Bugünkü hava ile tarladaki ürününüz karşılaştırılır; risk yüzdesi, hava özeti ve size özel kısa öneri çıkar.</p>
+            <div class="am-ok"><i class="fas fa-arrow-down me-1"></i>Bu sayfada aşağıdaki yeşil bölüme git</div>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a href="#analiz-tahmin" class="analiz-merkez-kart analiz-merkez-kart--tahmin" id="kartGitTahmin" aria-label="Yedi günlük tahmin bölümüne git">
+            <div class="am-ikon"><i class="fas fa-calendar-week"></i></div>
+            <h3>Önümüzdeki günleri merak ediyorum</h3>
+            <p>Tarla seçiliyken <strong>7 Gün Tahmin</strong>’e basın. Haftalık sıcaklık, yağış ve basit risk çubukları görünür; iş planı yapmanıza yardım eder.</p>
+            <div class="am-ok"><i class="fas fa-arrow-down me-1"></i>Mavi bölüme git — tablo ve grafik</div>
+        </a>
     </div>
 </div>
 
@@ -229,7 +559,15 @@
     </div>
 </div>
 
-<!-- Ana İçerik -->
+<!-- 1 — Anlık analiz (tek kaydırma hedefi: başlık + kartlar) -->
+<div id="analiz-anlik" class="dash-section-anchor">
+    <div class="dash-section-head">
+        <span class="dash-ikon anlik"><i class="fas fa-bolt"></i></span>
+        <div class="baslik-metin">
+            <h2>Bugünkü risk analizi</h2>
+            <p>Tarla ve ürün seçili olmalı. Üstteki <strong>Analiz Et</strong> ile güncel verileri çekin; skor solda, hava ortada, öneri sağdadır.</p>
+        </div>
+    </div>
 <div class="row g-3">
 
     <!-- Risk Kartı -->
@@ -247,12 +585,20 @@
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted"><i class="fas fa-brain text-primary me-1"></i>Model</small>
-                    <span class="badge bg-secondary" id="modelBadge">Random Forest</span>
+                    <span class="badge bg-secondary" id="modelBadge">Kural tabanı</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted"><i class="fas fa-clock text-warning me-1"></i>Son Güncelleme</small>
                     <span class="text-muted" style="font-size:0.8rem;" id="sonGuncelleme">-</span>
                 </div>
+            </div>
+            <div class="mt-3 pt-3 border-top">
+                <div class="small fw-bold text-secondary mb-2">
+                    <i class="fas fa-list-ul me-1 text-success"></i>Anlık risk dökümü
+                </div>
+                <ul id="riskEtkenListesi" class="small mb-0 ps-3 text-muted" style="line-height:1.55;">
+                    <li>Tarla seçip <strong>Analiz Et</strong> dediğinizde, hava ve ürün idealine göre risk etkenleri burada listelenir.</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -303,13 +649,51 @@
         </div>
     </div>
 
+</div>
+</div>
+
+<!-- 2 — Haftalık tahmin -->
+<div id="analiz-tahmin" class="dash-section-anchor mt-2">
+    <div class="dash-section-head tahmin-head">
+        <span class="dash-ikon tahmin"><i class="fas fa-cloud-sun"></i></span>
+        <div class="baslik-metin">
+            <h2>Haftalık hava ve risk özeti</h2>
+            <p>Meteoroloji kaynaklı 7 günlük tablo ve renkli risk çubukları. İleride yapay zekâ (LSTM) ile bu grafik daha da keskinleşecek.</p>
+        </div>
+    </div>
+<div class="row g-3">
+
     <!-- 7 Günlük Tahmin -->
     <div class="col-md-8">
         <div class="info-card">
-            <h6><i class="fas fa-chart-line me-2 text-primary"></i>7 Günlük Risk Tahmini <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">LSTM</span></h6>
-            <div class="placeholder-chart" id="tahminChart">
-                <i class="fas fa-chart-area fa-2x" style="opacity:0.3"></i>
-                <span>Tahmin için analiz başlatın</span>
+            <h6 class="d-flex align-items-center flex-wrap gap-2">
+                <span><i class="fas fa-chart-line me-2 text-primary"></i>Gelecek tahmini (7 gün)</span>
+                <span class="badge bg-light text-secondary border" style="font-size:0.62rem;">Open-Meteo</span>
+                <span class="badge border text-muted bg-white" style="font-size:0.62rem;">LSTM → sonra</span>
+            </h6>
+            <p class="small text-muted mb-2" id="tahminAciklama" style="display:none;"></p>
+            <div id="tahminPlaceholder" class="placeholder-chart mb-0">
+                <i class="fas fa-cloud-sun fa-2x" style="opacity:0.3"></i>
+                <span>Tarla seçip <strong>7 Gün Tahmin</strong> veya <strong>Analiz Et</strong> ile doldurun</span>
+                <span class="small text-center" style="max-width:340px;">Günlük sütunlarda hava tahmini + ürününüze göre özet risk skoru gösterilir; LSTM entegrasyonu geldiğinde eğri burada güçlenir.</span>
+            </div>
+            <div id="tahminIcerik" class="d-none">
+                <div class="mb-3" id="tahminRiskChart" aria-label="Günlük risk çubukları"></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover tahmin-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Gün</th>
+                                <th>Tarih</th>
+                                <th>Max/Min °C</th>
+                                <th>Nem</th>
+                                <th>Yağış</th>
+                                <th>Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tahminTabloBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -328,6 +712,9 @@
     </div>
 
 </div>
+</div>
+
+</div>
 
 @section Scripts {
 <script>
@@ -336,13 +723,166 @@
         'Authorization': 'Bearer ' + localStorage.getItem('token')
     };
 
+    let lokasyonCache = [];
+
+    const riskEtkenVarsayilanHtml = `<li>Tarla seçip <strong>Analiz Et</strong> dediğinizde, hava ve ürün idealine göre risk etkenleri burada listelenir.</li>`;
+
+    function guncelleSeciliTarlaBaslik() {
+        const lokId = document.getElementById('lokasyonSecim').value;
+        const el = document.getElementById('seciliTarlaBaslik');
+        if (!lokId) {
+            el.textContent = '';
+            return;
+        }
+        const lok = lokasyonCache.find(x => String(x.lokasyonId) === String(lokId));
+        if (!lok) return;
+        const ad = lok.isim || `${lok.sehir}${lok.ilce ? ' / ' + lok.ilce : ''}`;
+        el.textContent = 'Seçili tarla: ' + ad;
+    }
+
+    function riskEtkenleriniGoster(liste) {
+        const ul = document.getElementById('riskEtkenListesi');
+        if (!liste || !liste.length) {
+            ul.innerHTML = riskEtkenVarsayilanHtml;
+            return;
+        }
+        ul.innerHTML = liste.map(x => `<li>${String(x).replace(/</g, '&lt;')}</li>`).join('');
+    }
+
+    function tahminArayuzuSifirla() {
+        document.getElementById('tahminIcerik').classList.add('d-none');
+        document.getElementById('tahminPlaceholder').classList.remove('d-none');
+        document.getElementById('tahminAciklama').style.display = 'none';
+        document.getElementById('tahminRiskChart').innerHTML = '';
+        document.getElementById('tahminTabloBody').innerHTML = '';
+    }
+
+    function tahminVerisiniCiz(data) {
+        const ph = document.getElementById('tahminPlaceholder');
+        const ic = document.getElementById('tahminIcerik');
+        const ack = document.getElementById('tahminAciklama');
+        const chart = document.getElementById('tahminRiskChart');
+        const tbody = document.getElementById('tahminTabloBody');
+
+        if (!data.tahminler || !data.tahminler.length) {
+            tahminArayuzuSifirla();
+            return;
+        }
+
+        ph.classList.add('d-none');
+        ic.classList.remove('d-none');
+        if (data.aciklama) {
+            ack.textContent = data.aciklama;
+            ack.style.display = 'block';
+        }
+
+        chart.innerHTML = data.tahminler.map(t => {
+            const pct = Math.min(100, Math.round((Number(t.riskSkoru) || 0) * 100));
+            let cls = 'bg-success';
+            if (t.riskOzeti === 'Kritik') cls = 'bg-danger';
+            else if (t.riskOzeti === 'Uyarı') cls = 'bg-warning';
+            const gun = t.gunAdi || '';
+            return `<div class="tahmin-risk-row">
+                <span class="lbl text-capitalize">${gun}</span>
+                <div class="tahmin-risk-bar-wrap"><div class="tahmin-risk-bar ${cls}" style="width:${pct}%"></div></div>
+                <span class="text-muted" style="min-width:36px;">%${pct}</span>
+            </div>`;
+        }).join('');
+
+        tbody.innerHTML = data.tahminler.map(t => {
+            const rs = Number(t.riskSkoru) || 0;
+            let pill = 'dusuk';
+            if (t.riskOzeti === 'Kritik') pill = 'kritik';
+            else if (t.riskOzeti === 'Uyarı') pill = 'uyari';
+            const maxmin = (t.sicaklikMax != null ? t.sicaklikMax : '—') + ' / ' + (t.sicaklikMin != null ? t.sicaklikMin : '—');
+            return `<tr>
+                <td class="text-capitalize">${t.gunAdi || ''}</td>
+                <td>${t.tarih || ''}</td>
+                <td>${maxmin}°C</td>
+                <td>${t.nem != null ? '%' + t.nem : '—'}</td>
+                <td>${t.yagis != null ? t.yagis + ' mm' : '—'}</td>
+                <td><span class="pill-risk ${pill}">${t.riskOzeti || '—'} (${Math.round(rs * 100)}%)</span></td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function tahminYukle(sessiz) {
+        const lokId = document.getElementById('lokasyonSecim').value;
+        if (!lokId) {
+            if (!sessiz) alert('Önce tarla seçin');
+            return;
+        }
+        const btn = document.getElementById('btnTahminYukle');
+        if (!sessiz) btn.disabled = true;
+        try {
+            const res = await fetch(`/api/Analiz/tahmin/${lokId}`, { method: 'POST', headers: authHeaders });
+            const data = await res.json();
+            if (!res.ok) {
+                if (!sessiz) alert(data.message || 'Tahmin alınamadı');
+                return;
+            }
+            tahminVerisiniCiz(data);
+        } catch (e) {
+            if (!sessiz) alert('Bağlantı hatası: ' + e.message);
+        } finally {
+            if (!sessiz) btn.disabled = false;
+        }
+    }
+
+    function formatUrunOzeti(u) {
+        if (!u) return '';
+        const p = [];
+        if (u.idealSicaklikMin != null && u.idealSicaklikMax != null)
+            p.push(`İdeal sıcaklık ${u.idealSicaklikMin}–${u.idealSicaklikMax}°C`);
+        if (u.idealNemMin != null && u.idealNemMax != null)
+            p.push(`nem %${u.idealNemMin}–${u.idealNemMax}`);
+        if (u.ekimAylari) p.push(`ekim ayları: ${u.ekimAylari}`);
+        return p.length ? p.join(' · ') : (u.aciklama || '');
+    }
+
+    async function tarlaOzetiGuncelle() {
+        const lokId = document.getElementById('lokasyonSecim').value;
+        guncelleSeciliTarlaBaslik();
+        const wrap = document.getElementById('tarlaOzeti');
+        const adEl = document.getElementById('ozetUrunAd');
+        const detEl = document.getElementById('ozetUrunDetay');
+        const uyari = document.getElementById('ozetUrunUyari');
+        if (!lokId) {
+            wrap.classList.add('d-none');
+            tahminArayuzuSifirla();
+            riskEtkenleriniGoster(null);
+            return;
+        }
+        wrap.classList.remove('d-none');
+        const lok = lokasyonCache.find(x => String(x.lokasyonId) === String(lokId));
+        if (!lok) return;
+        uyari.classList.toggle('d-none', !!lok.urunId);
+        if (!lok.urunId) {
+            adEl.textContent = 'Atanmadı';
+            detEl.textContent = 'Tarlalarım sayfasından bu tarlaya ürün seçin; analiz yalnızca ürün atandıktan sonra çalışır.';
+            return;
+        }
+        adEl.textContent = lok.urunAdi || 'Ürün';
+        detEl.textContent = 'Yükleniyor...';
+        try {
+            const res = await fetch(`/api/Urun/${lok.urunId}`, { headers: authHeaders });
+            if (!res.ok) throw new Error();
+            const u = await res.json();
+            detEl.textContent = formatUrunOzeti(u);
+        } catch {
+            detEl.textContent = '';
+        }
+    }
+
     // Lokasyonları yükle
     async function loadLokasyonlar() {
         try {
             const res = await fetch('/api/Lokasyon', { headers: authHeaders });
             if (!res.ok) return;
             const data = await res.json();
+            lokasyonCache = data;
             const sel = document.getElementById('lokasyonSecim');
+            sel.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
             data.forEach(l => {
                 const opt = document.createElement('option');
                 opt.value = l.lokasyonId;
@@ -350,8 +890,26 @@
                 sel.appendChild(opt);
             });
             document.getElementById('statTarla').textContent = data.length;
+            await tarlaOzetiGuncelle();
         } catch {}
     }
+
+    document.getElementById('lokasyonSecim').addEventListener('change', () => { tarlaOzetiGuncelle(); });
+    document.getElementById('btnTahminYukle').addEventListener('click', () => tahminYukle());
+
+    function dashHashVurgula() {
+        const h = (location.hash || '').replace(/^#/, '');
+        document.querySelectorAll('.dash-section-anchor.dash-flash').forEach(function (e) {
+            e.classList.remove('dash-flash');
+        });
+        if (!h) return;
+        const el = document.getElementById(h);
+        if (el && el.classList.contains('dash-section-anchor')) {
+            el.classList.add('dash-flash');
+            setTimeout(function () { el.classList.remove('dash-flash'); }, 1100);
+        }
+    }
+    window.addEventListener('hashchange', dashHashVurgula);
 
     // Son önerileri yükle
     async function loadSonOneriler() {
@@ -365,9 +923,10 @@
             container.innerHTML = '';
             data.slice(0, 3).forEach(o => {
                 const seviye = o.riskSkoru > 0.70 ? 'kritik' : o.riskSkoru > 0.40 ? 'uyarı' : '';
+                const urunEt = o.urunAdi ? `<span class="badge bg-light text-dark border me-1" style="font-size:0.68rem;">${o.urunAdi}</span>` : '';
                 container.innerHTML += `
                     <div class="oneri-item ${seviye}">
-                        <div>${o.tavsiyeMetni || 'Öneri metni yok'}</div>
+                        <div>${urunEt}${o.tavsiyeMetni || 'Öneri metni yok'}</div>
                         <div class="oneri-tarih">${new Date(o.olusturulmaZamani).toLocaleDateString('tr-TR')}</div>
                     </div>`;
             });
@@ -379,6 +938,11 @@
         const lokId = document.getElementById('lokasyonSecim').value;
         if (!lokId) {
             alert('Lütfen bir tarla seçin');
+            return;
+        }
+        const lok = lokasyonCache.find(x => String(x.lokasyonId) === String(lokId));
+        if (!lok || !lok.urunId) {
+            alert('Bu tarla için ürün seçilmedi. Tarlalarım sayfasından ürün atayın.');
             return;
         }
 
@@ -421,6 +985,8 @@
 
             document.getElementById('sonGuncelleme').textContent = new Date().toLocaleTimeString('tr-TR');
 
+            riskEtkenleriniGoster(data.riskEtkenleri);
+
             // Hava durumu
             if (data.havaVerisi) {
                 const hw = data.havaVerisi;
@@ -437,7 +1003,11 @@
             // Öneri metni
             if (data.tavsiyeMetni) {
                 const seviye = score > 0.70 ? 'kritik' : score > 0.40 ? 'uyarı' : '';
-                document.getElementById('oneriContainer').innerHTML = `
+                const urunBas = data.urunAdi
+                    ? `<div class="mb-2"><span class="badge bg-success" style="font-size:0.72rem;">${data.urunAdi}</span>`
+                      + (data.urunOzeti ? `<div class="text-muted mt-1" style="font-size:0.78rem;">${data.urunOzeti}</div>` : '')
+                      + `</div>` : '';
+                document.getElementById('oneriContainer').innerHTML = urunBas + `
                     <div class="oneri-item ${seviye}">
                         <i class="fas fa-info-circle me-1"></i>
                         ${data.tavsiyeMetni}
@@ -445,6 +1015,7 @@
             }
 
             await loadSonOneriler();
+            await tahminYukle(true);
 
         } catch (e) {
             alert('Bağlantı hatası: ' + e.message);
@@ -457,5 +1028,6 @@
     // Sayfa yüklenince
     loadLokasyonlar();
     loadSonOneriler();
+    setTimeout(dashHashVurgula, 450);
 </script>
 }

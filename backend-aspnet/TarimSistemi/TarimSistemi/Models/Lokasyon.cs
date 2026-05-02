@@ -31,8 +31,14 @@ namespace TarimSistemi.Models
         [Column("kayitTarihi")]
         public DateTime KayitTarihi { get; set; } = DateTime.Now;
 
+        [Column("urunId")]
+        public int? UrunId { get; set; }
+
         // İlişkiler
         public Kullanici Kullanici { get; set; }
+
+        [ForeignKey("UrunId")]
+        public UrunBilgisi? UrunBilgisi { get; set; }
         public ICollection<HavaVerisi> HavaVerileri { get; set; }
         public ICollection<Oneri> Oneriler { get; set; }
     }
