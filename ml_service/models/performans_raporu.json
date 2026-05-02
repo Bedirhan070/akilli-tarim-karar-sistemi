@@ -1,0 +1,23 @@
+{
+  "tarih": "2026-05-02 10:34",
+  "isolation_forest": {
+    "toplam_kayit": 21900,
+    "anomali_orani": 0.12,
+    "normal_orani": 0.88,
+    "durum": "basarili"
+  },
+  "random_forest": {
+    "accuracy": 1.0,
+    "en_onemli_ozellik": "nem",
+    "onem_orani": 0.663,
+    "durum": "basarili"
+  },
+  "lstm": {
+    "sehir": "Bitlis",
+    "pencere": 30,
+    "mae": 2.9,
+    "rmse": 3.96,
+    "mape": 98.09,
+    "durum": "basarili"
+  }
+}
