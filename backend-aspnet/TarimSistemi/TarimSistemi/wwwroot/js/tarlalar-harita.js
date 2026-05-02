@@ -1,0 +1,367 @@
+﻿function tarlaAuthHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') };
+}
+
+/* ── İl/İlçe Verisi ─────────────────────────────────────────────────────── */
+const turkiye = [
+  { ad:"Adana",           lat:37.00, lon:35.32, ilceler:["Aladağ","Ceyhan","Çukurova","Feke","İmamoğlu","Karaisalı","Karataş","Kozan","Pozantı","Saimbeyli","Sarıçam","Seyhan","Tufanbeyli","Yumurtalık","Yüreğir"] },
+  { ad:"Adıyaman",        lat:37.76, lon:38.28, ilceler:["Adıyaman Merkez","Besni","Çelikhan","Gerger","Gölbaşı","Kahta","Samsat","Sincik","Tut"] },
+  { ad:"Afyonkarahisar",  lat:38.75, lon:30.54, ilceler:["Afyon Merkez","Başmakçı","Bayat","Bolvadin","Çay","Çobanlar","Dazkırı","Dinar","Emirdağ","Evciler","Hocalar","İhsaniye","İscehisar","Kızılören","Sandıklı","Sinanpaşa","Sultandağı","Şuhut"] },
+  { ad:"Ağrı",            lat:39.72, lon:43.05, ilceler:["Ağrı Merkez","Diyadin","Doğubayazıt","Eleşkirt","Hamur","Patnos","Taşlıçay","Tutak"] },
+  { ad:"Amasya",          lat:40.65, lon:35.83, ilceler:["Amasya Merkez","Göynücek","Gümüşhacıköy","Hamamözü","Merzifon","Suluova","Taşova"] },
+  { ad:"Ankara",          lat:39.92, lon:32.85, ilceler:["Akyurt","Altındağ","Ayaş","Bala","Beypazarı","Çamlıdere","Çankaya","Çubuk","Elmadağ","Etimesgut","Evren","Gölbaşı","Güdül","Haymana","Kalecik","Kazan","Keçiören","Kızılcahamam","Mamak","Nallıhan","Polatlı","Pursaklar","Sincan","Şereflikoçhisar","Yenimahalle"] },
+  { ad:"Antalya",         lat:36.90, lon:30.69, ilceler:["Akseki","Aksu","Alanya","Demre","Döşemealtı","Elmalı","Finike","Gazipaşa","Gündoğmuş","İbradı","Kaş","Kemer","Kepez","Konyaaltı","Korkuteli","Kumluca","Manavgat","Muratpaşa","Serik"] },
+  { ad:"Artvin",          lat:41.18, lon:41.82, ilceler:["Ardanuç","Arhavi","Artvin Merkez","Borçka","Hopa","Murgul","Şavşat","Yusufeli"] },
+  { ad:"Aydın",           lat:37.84, lon:27.84, ilceler:["Bozdoğan","Buharkent","Çine","Didim","Efeler","Germencik","İncirliova","Karacasu","Karpuzlu","Koçarlı","Köşk","Kuşadası","Kuyucak","Nazilli","Söke","Sultanhisar","Yenipazar"] },
+  { ad:"Balıkesir",       lat:39.64, lon:27.88, ilceler:["Altıeylül","Ayvalık","Balya","Bandırma","Bigadiç","Burhaniye","Dursunbey","Edremit","Erdek","Gömeç","Gönen","Havran","İvrindi","Karesi","Kepsut","Manyas","Marmara","Savaştepe","Sındırgı","Susurluk"] },
+  { ad:"Bilecik",         lat:40.14, lon:29.98, ilceler:["Bilecik Merkez","Bozüyük","Gölpazarı","İnhisar","Osmaneli","Pazaryeri","Söğüt","Yenipazar"] },
+  { ad:"Bingöl",          lat:38.89, lon:40.50, ilceler:["Adaklı","Bingöl Merkez","Genç","Karlıova","Kiğı","Solhan","Yayladere","Yedisu"] },
+  { ad:"Bitlis",          lat:38.40, lon:42.11, ilceler:["Adilcevaz","Ahlat","Bitlis Merkez","Güroymak","Hizan","Mutki","Tatvan"] },
+  { ad:"Bolu",            lat:40.73, lon:31.60, ilceler:["Bolu Merkez","Dörtdivan","Gerede","Göynük","Kıbrıscık","Mengen","Mudurnu","Seben","Yeniçağa"] },
+  { ad:"Burdur",          lat:37.72, lon:30.29, ilceler:["Ağlasun","Altınyayla","Bucak","Burdur Merkez","Çavdır","Çeltikçi","Gölhisar","Karamanlı","Kemer","Tefenni","Yeşilova"] },
+  { ad:"Bursa",           lat:40.18, lon:29.06, ilceler:["Büyükorhan","Gemlik","Gürsu","Harmancık","İnegöl","İznik","Karacabey","Keles","Kestel","Mudanya","Mustafakemalpaşa","Nilüfer","Orhaneli","Orhangazi","Osmangazi","Yıldırım","Yenişehir"] },
+  { ad:"Çanakkale",       lat:40.15, lon:26.40, ilceler:["Ayvacık","Bayramiç","Biga","Bozcaada","Çan","Çanakkale Merkez","Eceabat","Ezine","Gelibolu","Gökçeada","Lapseki","Yenice"] },
+  { ad:"Çankırı",         lat:40.60, lon:33.62, ilceler:["Atkaracalar","Bayramören","Çankırı Merkez","Eldivan","Ilgaz","Kızılırmak","Korgun","Kurşunlu","Orta","Şabanözü","Yapraklı"] },
+  { ad:"Çorum",           lat:40.54, lon:34.95, ilceler:["Alaca","Bayat","Boğazkale","Dodurga","İskilip","Kargı","Laçin","Mecitözü","Oğuzlar","Ortaköy","Osmancık","Sungurlu","Uğurludağ","Çorum Merkez"] },
+  { ad:"Denizli",         lat:37.77, lon:29.09, ilceler:["Acıpayam","Babadağ","Baklan","Bekilli","Beyağaç","Bozkurt","Buldan","Çal","Çameli","Çardak","Çivril","Honaz","Kale","Merkezefendi","Pamukkale","Sarayköy","Serinhisar","Tavas"] },
+  { ad:"Diyarbakır",      lat:37.91, lon:40.22, ilceler:["Bağlar","Bismil","Çermik","Çınar","Çüngüş","Dicle","Eğil","Ergani","Hani","Hazro","Kayapınar","Kocaköy","Kulp","Lice","Silvan","Sur","Yenişehir"] },
+  { ad:"Düzce",           lat:40.84, lon:31.16, ilceler:["Akçakoca","Cumayeri","Çilimli","Düzce Merkez","Gölköy","Gülyaka","Kaynaşlı","Yığılca"] },
+  { ad:"Edirne",          lat:41.67, lon:26.55, ilceler:["Edirne Merkez","Enez","Havsa","İpsala","Keşan","Lalapaşa","Meriç","Süloğlu","Uzunköprü"] },
+  { ad:"Elazığ",          lat:38.68, lon:39.22, ilceler:["Ağın","Alacakaya","Arıcak","Baskil","Karakoçan","Keban","Kovancılar","Maden","Palu","Sivrice","Elazığ Merkez"] },
+  { ad:"Erzincan",        lat:39.75, lon:39.49, ilceler:["Çayırlı","Erzincan Merkez","İliç","Kemah","Kemaliye","Otlukbeli","Refahiye","Tercan","Üzümlü"] },
+  { ad:"Erzurum",         lat:39.90, lon:41.26, ilceler:["Aşkale","Aziziye","Çat","Hınıs","Horasan","İspir","Karaçoban","Karayazı","Köprüköy","Narman","Oltu","Olur","Palandöken","Pasinler","Pazaryolu","Şenkaya","Tekman","Tortum","Uzundere","Yakutiye"] },
+  { ad:"Eskişehir",       lat:39.77, lon:30.52, ilceler:["Alpu","Beylikova","Çifteler","Günyüzü","Han","İnönü","Mahmudiye","Mihalgazi","Mihalıççık","Odunpazarı","Sarıcakaya","Seyitgazi","Sivrihisar","Tepebaşı"] },
+  { ad:"Gaziantep",       lat:37.06, lon:37.38, ilceler:["Araban","İslahiye","Karkamış","Nizip","Nurdağı","Oğuzeli","Şahinbey","Şehitkamil","Yavuzeli"] },
+  { ad:"Giresun",         lat:40.91, lon:38.39, ilceler:["Alucra","Bulancak","Çamoluk","Çanakçı","Dereli","Doğankent","Espiye","Eynesil","Giresun Merkez","Görele","Güce","Keşap","Piraziz","Şebinkarahisar","Tirebolu","Yağlıdere"] },
+  { ad:"Gümüşhane",       lat:40.46, lon:39.48, ilceler:["Gümüşhane Merkez","Kelkit","Köse","Kürtün","Şiran","Torul"] },
+  { ad:"Hakkari",         lat:37.57, lon:43.74, ilceler:["Çukurca","Hakkari Merkez","Şemdinli","Yüksekova"] },
+  { ad:"Hatay",           lat:36.40, lon:36.34, ilceler:["Altınözü","Antakya","Arsuz","Belen","Defne","Dörtyol","Erzin","Hassa","İskenderun","Kırıkhan","Kumlu","Payas","Reyhanlı","Samandağ","Yayladağı"] },
+  { ad:"Iğdır",           lat:39.92, lon:44.05, ilceler:["Aralık","Iğdır Merkez","Karakoyunlu","Tuzluca"] },
+  { ad:"Isparta",         lat:37.76, lon:30.55, ilceler:["Aksu","Atabey","Eğirdir","Gelendost","Gönen","Keçiborlu","Senirkent","Sütçüler","Şarkikaraağaç","Uluborlu","Yalvaç","Yenişarbademli","Isparta Merkez"] },
+  { ad:"İstanbul",        lat:41.01, lon:28.95, ilceler:["Adalar","Arnavutköy","Ataşehir","Avcılar","Bağcılar","Bahçelievler","Bakırköy","Başakşehir","Bayrampaşa","Beşiktaş","Beykoz","Beylikdüzü","Beyoğlu","Büyükçekmece","Çatalca","Çekmeköy","Esenler","Esenyurt","Eyüpsultan","Fatih","Gaziosmanpaşa","Güngören","Kadıköy","Kağıthane","Kartal","Küçükçekmece","Maltepe","Pendik","Sancaktepe","Sarıyer","Silivri","Sultanbeyli","Sultangazi","Şile","Şişli","Tuzla","Ümraniye","Üsküdar","Zeytinburnu"] },
+  { ad:"İzmir",           lat:38.42, lon:27.14, ilceler:["Aliağa","Balçova","Bayındır","Bayraklı","Bergama","Beydağ","Bornova","Buca","Çeşme","Çiğli","Dikili","Foça","Gaziemir","Güzelbahçe","Karabağlar","Karaburun","Karşıyaka","Kemalpaşa","Kınık","Kiraz","Konak","Menderes","Menemen","Narlıdere","Ödemiş","Seferihisar","Selçuk","Tire","Torbalı","Urla"] },
+  { ad:"Kahramanmaraş",   lat:37.58, lon:36.94, ilceler:["Afşin","Andırın","Çağlayancerit","Dulkadiroğlu","Ekinözü","Elbistan","Göksun","Nurhak","Onikişubat","Pazarcık","Türkoğlu"] },
+  { ad:"Karabük",         lat:41.20, lon:32.62, ilceler:["Eflani","Eskipazar","Karabük Merkez","Ovacık","Safranbolu","Yenice"] },
+  { ad:"Karaman",         lat:37.18, lon:33.22, ilceler:["Ayrancı","Başyayla","Ermenek","Karaman Merkez","Kazımkarabekir","Sarıveliler"] },
+  { ad:"Kars",            lat:40.60, lon:43.10, ilceler:["Arpaçay","Digor","Kağızman","Kars Merkez","Sarıkamış","Selim","Susuz"] },
+  { ad:"Kastamonu",       lat:41.38, lon:33.77, ilceler:["Abana","Ağlı","Araç","Azdavay","Bozkurt","Cide","Çatalzeytin","Daday","Devrekani","Doğanyurt","Hanönü","İhsangazi","İnebolu","Kastamonu Merkez","Küre","Pınarbaşı","Seydiler","Şenpazar","Taşköprü","Tosya"] },
+  { ad:"Kayseri",         lat:38.73, lon:35.49, ilceler:["Akkışla","Bünyan","Develi","Felahiye","Hacılar","İncesu","Kocasinan","Melikgazi","Özvatan","Pınarbaşı","Sarıoğlan","Sarız","Talas","Tomarza","Yahyalı","Yeşilhisar"] },
+  { ad:"Kilis",           lat:36.72, lon:37.12, ilceler:["Elbeyli","Kilis Merkez","Musabeyli","Polateli"] },
+  { ad:"Kırıkkale",       lat:39.85, lon:33.51, ilceler:["Bahşili","Balışeyh","Çelebi","Delice","Karakeçili","Keskin","Kırıkkale Merkez","Sulakyurt","Yahşihan"] },
+  { ad:"Kırklareli",      lat:41.73, lon:27.22, ilceler:["Babaeski","Demirköy","Kırklareli Merkez","Kofçaz","Lüleburgaz","Pehlivanköy","Pınarhisar","Vize"] },
+  { ad:"Kırşehir",        lat:39.14, lon:34.16, ilceler:["Akçakent","Akpınar","Boztepe","Çiçekdağı","Kaman","Kırşehir Merkez","Mucur"] },
+  { ad:"Kocaeli",         lat:40.85, lon:29.88, ilceler:["Başiskele","Çayırova","Darıca","Derince","Dilovası","Gebze","Gölcük","İzmit","Kandıra","Karamürsel","Kartepe","Körfez"] },
+  { ad:"Konya",           lat:37.87, lon:32.49, ilceler:["Ahırlı","Akören","Akşehir","Altınekin","Beyşehir","Bozkır","Cihanbeyli","Çeltik","Çumra","Derbent","Derebucak","Doğanhisar","Emirgazi","Ereğli","Güneysınır","Hadim","Halkapınar","Hüyük","Ilgın","Kadınhanı","Karapınar","Karatay","Kulu","Meram","Sarayönü","Selçuklu","Seydişehir","Taşkent","Tuzlukçu","Yalıhüyük","Yunak"] },
+  { ad:"Kütahya",         lat:39.42, lon:29.98, ilceler:["Altıntaş","Aslanapa","Çavdarhisar","Domaniç","Dumlupınar","Emet","Gediz","Hisarcık","Kütahya Merkez","Pazarlar","Şaphane","Simav","Tavşanlı"] },
+  { ad:"Malatya",         lat:38.35, lon:38.31, ilceler:["Akçadağ","Arapgir","Arguvan","Battalgazi","Darende","Doğanşehir","Doğanyol","Hekimhan","Kale","Kuluncak","Pütürge","Yazıhan","Yeşilyurt"] },
+  { ad:"Manisa",          lat:38.61, lon:27.43, ilceler:["Ahmetli","Akhisar","Alaşehir","Demirci","Gölmarmara","Gördes","Köprübaşı","Kula","Salihli","Sarıgöl","Saruhanlı","Selendi","Soma","Şehzadeler","Turgutlu","Yunusemre"] },
+  { ad:"Mardin",          lat:37.31, lon:40.74, ilceler:["Artuklu","Dargeçit","Derik","Kızıltepe","Mazıdağı","Midyat","Nusaybin","Ömerli","Savur","Yeşilli"] },
+  { ad:"Mersin",          lat:36.81, lon:34.62, ilceler:["Akdeniz","Anamur","Aydıncık","Bozyazı","Çamlıyayla","Erdemli","Gülnar","Mezitli","Mut","Silifke","Tarsus","Toroslar","Yenişehir"] },
+  { ad:"Muğla",           lat:37.21, lon:28.36, ilceler:["Bodrum","Dalaman","Datça","Fethiye","Kavaklıdere","Köyceğiz","Marmaris","Menteşe","Milas","Ortaca","Seydikemer","Ula","Yatağan"] },
+  { ad:"Muş",             lat:38.73, lon:41.49, ilceler:["Bulanık","Hasköy","Korkut","Malazgirt","Muş Merkez","Varto"] },
+  { ad:"Nevşehir",        lat:38.62, lon:34.71, ilceler:["Acıgöl","Avanos","Derinkuyu","Gülşehir","Hacıbektaş","Kozaklı","Nevşehir Merkez","Ürgüp"] },
+  { ad:"Niğde",           lat:37.97, lon:34.68, ilceler:["Altunhisar","Bor","Çamardı","Çiftlik","Niğde Merkez","Ulukışla"] },
+  { ad:"Ordu",            lat:40.98, lon:37.88, ilceler:["Akkuş","Altınordu","Aybastı","Çamaş","Çatalpınar","Çaybaşı","Fatsa","Gölköy","Gülyalı","Gürgentepe","İkizce","Kabadüz","Kabataş","Korgan","Kumru","Mesudiye","Perşembe","Ulubey","Ünye"] },
+  { ad:"Osmaniye",        lat:37.07, lon:36.25, ilceler:["Bahçe","Düziçi","Hasanbeyli","Kadirli","Osmaniye Merkez","Sumbas","Toprakkale"] },
+  { ad:"Rize",            lat:41.02, lon:40.52, ilceler:["Ardeşen","Çamlıhemşin","Çayeli","Derepazarı","Fındıklı","Güneysu","Hemşin","İkizdere","İyidere","Kalkandere","Pazar","Rize Merkez"] },
+  { ad:"Sakarya",         lat:40.69, lon:30.43, ilceler:["Adapazarı","Akyazı","Arifiye","Erenler","Ferizli","Geyve","Hendek","Karapürçek","Karasu","Kaynarca","Kocaali","Mithatpaşa","Pamukova","Sapanca","Serdivan","Söğütlü","Taraklı"] },
+  { ad:"Samsun",          lat:41.28, lon:36.33, ilceler:["19 Mayıs","Alaçam","Asarcık","Atakum","Ayvacık","Bafra","Canik","Çarşamba","Havza","İlkadım","Kavak","Ladik","Ondokuzmayıs","Salıpazarı","Tekkeköy","Terme","Vezirköprü","Yakakent"] },
+  { ad:"Siirt",           lat:37.92, lon:41.94, ilceler:["Aydinlar","Baykan","Eruh","Kurtalan","Pervari","Şirvan","Siirt Merkez"] },
+  { ad:"Sinop",           lat:42.02, lon:35.15, ilceler:["Ayancık","Boyabat","Dikmen","Durağan","Erfelek","Gerze","Saraydüzü","Sinop Merkez","Türkeli"] },
+  { ad:"Sivas",           lat:39.75, lon:37.02, ilceler:["Akıncılar","Altınyayla","Divriği","Doğanşar","Gemerek","Gölova","Hafik","İmranlı","Kangal","Koyulhisar","Sivas Merkez","Suşehri","Şarkışla","Ulaş","Yıldızeli","Zara"] },
+  { ad:"Şanlıurfa",       lat:37.16, lon:38.80, ilceler:["Akçakale","Birecik","Bozova","Ceylanpınar","Eyyübiye","Halfeti","Haliliye","Harran","Hilvan","Karaköprü","Siverek","Suruç","Viranşehir"] },
+  { ad:"Şırnak",          lat:37.52, lon:42.46, ilceler:["Beytüşşebap","Cizre","Güçlükonak","İdil","Silopi","Şırnak Merkez","Uludere"] },
+  { ad:"Tekirdağ",        lat:40.98, lon:27.51, ilceler:["Çerkezköy","Çorlu","Ergene","Hayrabolu","Kapaklı","Malkara","Marmaraereğlisi","Muratlı","Saray","Süleymanpaşa","Şarköy"] },
+  { ad:"Tokat",           lat:40.31, lon:36.55, ilceler:["Almus","Artova","Başçiftlik","Erbaa","Niksar","Pazar","Reşadiye","Sulusaray","Tokat Merkez","Turhal","Yeşilyurt","Zile"] },
+  { ad:"Trabzon",         lat:41.00, lon:39.72, ilceler:["Akçaabat","Araklı","Arsin","Beşikdüzü","Çarşıbaşı","Çaykara","Dernekpazarı","Düzköy","Hayrat","Köprübaşı","Maçka","Of","Ortahisar","Sürmene","Şalpazarı","Tonya","Vakfıkebir","Yomra"] },
+  { ad:"Tunceli",         lat:39.11, lon:39.55, ilceler:["Çemişgezek","Hozat","Mazgirt","Nazımiye","Ovacık","Pertek","Pülümür","Tunceli Merkez"] },
+  { ad:"Uşak",            lat:38.68, lon:29.41, ilceler:["Banaz","Eşme","Karahallı","Sivaslı","Ulubey","Uşak Merkez"] },
+  { ad:"Van",             lat:38.49, lon:43.38, ilceler:["Bahçesaray","Başkale","Çaldıran","Çatak","Edremit","Erciş","Gevaş","Gürpınar","İpekyolu","Muradiye","Özalp","Saray","Tuşba"] },
+  { ad:"Yalova",          lat:40.65, lon:29.27, ilceler:["Altınova","Armutlu","Çiftlikköy","Çınarcık","Termal","Yalova Merkez"] },
+  { ad:"Yozgat",          lat:39.82, lon:34.81, ilceler:["Akdağmadeni","Aydıncık","Boğazlıyan","Çandır","Çayıralan","Çekerek","Kadışehri","Saraykent","Sarıkaya","Sorgun","Şefaatli","Yenifakılı","Yerköy","Yozgat Merkez"] },
+  { ad:"Zonguldak",       lat:41.45, lon:31.79, ilceler:["Alaplı","Çaycuma","Devrek","Ereğli","Gökçebey","Kilimli","Kozlu","Zonguldak Merkez"] },
+  { ad:"Aksaray",         lat:38.37, lon:34.04, ilceler:["Ağaçören","Aksaray Merkez","Eskil","Gülağaç","Güzelyurt","Ortaköy","Sarıyahşi","Sultanhanı"] },
+  { ad:"Ardahan",         lat:41.11, lon:42.70, ilceler:["Ardahan Merkez","Çıldır","Damal","Göle","Hanak","Posof"] },
+  { ad:"Bartın",          lat:41.63, lon:32.34, ilceler:["Amasra","Bartın Merkez","Kurucaşile","Ulus"] },
+  { ad:"Batman",          lat:37.88, lon:41.13, ilceler:["Batman Merkez","Beşiri","Gercüş","Hasankeyf","Kozluk","Sason"] },
+  { ad:"Bayburt",         lat:40.26, lon:40.23, ilceler:["Aydıntepe","Bayburt Merkez","Demirözü"] }
+];
+
+let harita = null;
+let ilMarkerlari   = [];
+let ilceMarkerlari = [];
+let seciliMarker   = null;
+let aktifIl        = null;
+
+if (typeof L === 'undefined') {
+    document.getElementById('harita').innerHTML =
+        '<div class="p-4 text-center text-danger small">Harita kütüphanesi yüklenemedi.</div>';
+} else {
+    try {
+        harita = L.map('harita', { zoomControl: true }).setView([39.0, 35.0], 6);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20,
+            subdomains: 'abcd',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+        }).addTo(harita);
+    } catch (e) {
+        document.getElementById('harita').innerHTML =
+            '<div class="p-3 text-danger small">Harita başlatılamadı.</div>';
+    }
+}
+
+function haritaBoyutunuGuncelle() {
+    if (harita) {
+        harita.invalidateSize();
+    }
+}
+
+/* ── İl markerlarını göster ──────────────────────────────────────────────── */
+function ilMarkerlariniGoster() {
+    if (!harita) return;
+    ilMarkerlari.forEach(m => harita.removeLayer(m));
+    ilMarkerlari = [];
+    ilceMarkerlari.forEach(m => harita.removeLayer(m));
+    ilceMarkerlari = [];
+
+    document.getElementById('btnGeri').classList.add('d-none');
+    document.getElementById('breadcrumb').innerHTML =
+        'Türkiye — <strong>Bir il seçin</strong>';
+
+    turkiye.forEach(il => {
+        const icon = L.divIcon({
+            className: 'il-icon',
+            html: `<div class="il-badge">${il.ad}</div>`,
+            iconSize: [0, 0]
+        });
+        const m = L.marker([il.lat, il.lon], { icon })
+            .addTo(harita)
+            .on('click', () => ilSec(il));
+        ilMarkerlari.push(m);
+    });
+}
+
+/* ── İl seçildi → ilçeleri grid şeklinde haritaya yerleştir ─────────────── */
+function ilSec(il) {
+    if (!harita) return;
+    aktifIl = il;
+    ilMarkerlari.forEach(m => harita.removeLayer(m));
+    ilMarkerlari = [];
+    ilceMarkerlari.forEach(m => harita.removeLayer(m));
+    ilceMarkerlari = [];
+    if (seciliMarker) { harita.removeLayer(seciliMarker); seciliMarker = null; }
+
+    document.getElementById('btnGeri').classList.remove('d-none');
+    document.getElementById('breadcrumb').innerHTML =
+        `<strong>${il.ad}</strong> — Bir ilçe seçin`;
+
+    // İlçeleri ızgara düzeninde il merkezinin etrafına yay
+    const sorted = [...il.ilceler].sort((a, b) => a.localeCompare(b, 'tr'));
+    const n      = sorted.length;
+    const cols   = Math.min(8, Math.ceil(Math.sqrt(n * 1.6)));
+    const rows   = Math.ceil(n / cols);
+    const dLat   = Math.min(0.38, 1.4 / Math.max(rows, 1));
+    const dLon   = Math.min(0.52, 2.0 / Math.max(cols, 1));
+    const offLat = ((rows - 1) * dLat) / 2;
+    const offLon = ((cols - 1) * dLon) / 2;
+
+    const bounds = [];
+    sorted.forEach((ilceAdi, i) => {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const lat = il.lat + offLat - row * dLat;
+        const lon = il.lon - offLon + col * dLon;
+        bounds.push([lat, lon]);
+
+        const icon = L.divIcon({
+            className: 'ilce-icon',
+            html: `<div class="ilce-badge" id="ilce-${i}">${ilceAdi}</div>`,
+            iconSize: [0, 0]
+        });
+        const m = L.marker([lat, lon], { icon })
+            .addTo(harita)
+            .on('click', () => ilceSec(ilceAdi, il, i));
+        ilceMarkerlari.push(m);
+    });
+
+    // Tüm ilçe markerlarını gösterecek şekilde zoom ayarla
+    if (bounds.length > 1) {
+        harita.fitBounds(L.latLngBounds(bounds).pad(0.15));
+    } else {
+        harita.setView([il.lat, il.lon], 10);
+    }
+
+    // Formu sıfırla
+    resetForm(false);
+}
+
+/* ── İlçe seçildi → Nominatim ile gerçek koordinatı al ──────────────────── */
+async function ilceSec(ilceAdi, il, idx) {
+    if (!harita) return;
+    // Önceki aktif badge'i temizle
+    document.querySelectorAll('.ilce-badge.active').forEach(el => el.classList.remove('active'));
+    const badge = document.getElementById('ilce-' + idx);
+    if (badge) badge.classList.add('active');
+
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = 'flex';
+
+    let lat = il.lat, lon = il.lon;
+    try {
+        const url  = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(ilceAdi + ', ' + il.ad + ', Türkiye')}&format=json&limit=1&accept-language=tr`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        if (data.length > 0) {
+            lat = parseFloat(data[0].lat);
+            lon = parseFloat(data[0].lon);
+        }
+    } catch { /* koordinat bulunamazsa il merkezini kullan */ }
+    finally { overlay.style.display = 'none'; }
+
+    // Forma yaz
+    document.getElementById('fIl').value    = il.ad;
+    document.getElementById('fIlce').value  = ilceAdi;
+    document.getElementById('fEnlem').value = lat.toFixed(6);
+    document.getElementById('fBoylam').value= lon.toFixed(6);
+
+    document.getElementById('konumEmpty').classList.add('d-none');
+    document.getElementById('konumFilled').classList.remove('d-none');
+    document.getElementById('konumText').textContent = `${ilceAdi}, ${il.ad}`;
+    document.getElementById('btnKaydet').disabled = false;
+    document.getElementById('formError').classList.add('d-none');
+
+    // Seçili noktayı haritada göster
+    if (seciliMarker) harita.removeLayer(seciliMarker);
+    seciliMarker = L.marker([lat, lon]).addTo(harita);
+    harita.setView([lat, lon], 11);
+}
+
+/* ── Geri butonu ─────────────────────────────────────────────────────────── */
+document.getElementById('btnGeri').addEventListener('click', () => {
+    if (!harita) return;
+    harita.setView([39.0, 35.0], 6);
+    ilMarkerlariniGoster();
+    resetForm(true);
+});
+
+/* ── Form sıfırlama ──────────────────────────────────────────────────────── */
+function resetForm(removeMarker) {
+    if (removeMarker && seciliMarker && harita) {
+        harita.removeLayer(seciliMarker);
+        seciliMarker = null;
+    }
+    document.getElementById('fIl').value    = '';
+    document.getElementById('fIlce').value  = '';
+    document.getElementById('fEnlem').value = '';
+    document.getElementById('fBoylam').value= '';
+    document.getElementById('fIsim').value  = '';
+    document.getElementById('konumEmpty').classList.remove('d-none');
+    document.getElementById('konumFilled').classList.add('d-none');
+    document.getElementById('btnKaydet').disabled = true;
+    document.getElementById('formError').classList.add('d-none');
+}
+
+/* ── Kaydet ──────────────────────────────────────────────────────────────── */
+document.getElementById('btnKaydet').addEventListener('click', async () => {
+    const il     = document.getElementById('fIl').value;
+    const ilce   = document.getElementById('fIlce').value;
+    const enlem  = document.getElementById('fEnlem').value;
+    const boylam = document.getElementById('fBoylam').value;
+    const errEl  = document.getElementById('formError');
+
+    if (!il || !enlem) {
+        errEl.textContent = 'Haritadan il ve ilçe seçin';
+        errEl.classList.remove('d-none');
+        return;
+    }
+
+    const btn = document.getElementById('btnKaydet');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Kaydediliyor...';
+
+    try {
+        const res = await fetch('/api/Lokasyon', {
+            method: 'POST',
+            headers: tarlaAuthHeaders(),
+            body: JSON.stringify({
+                isim:   document.getElementById('fIsim').value.trim() || null,
+                sehir:  il,
+                ilce:   ilce,
+                enlem:  parseFloat(enlem),
+                boylam: parseFloat(boylam)
+            })
+        });
+
+        if (res.ok) {
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Kaydedildi!';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-save me-1"></i>Tarla Olarak Kaydet';
+            }, 1500);
+            errEl.classList.add('d-none');
+            loadTarlalar();
+        } else {
+            const d = await res.json().catch(() => ({}));
+            errEl.textContent = d.message || 'Kayıt başarısız';
+            errEl.classList.remove('d-none');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-1"></i>Tarla Olarak Kaydet';
+        }
+    } catch {
+        errEl.textContent = 'Sunucuya bağlanılamadı';
+        errEl.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-1"></i>Tarla Olarak Kaydet';
+    }
+});
+
+/* ── Tarla listesi ───────────────────────────────────────────────────────── */
+async function loadTarlalar() {
+    try {
+        const res  = await fetch('/api/Lokasyon', { headers: tarlaAuthHeaders() });
+        const data = await res.json();
+        renderTarlalar(data);
+    } catch {
+        document.getElementById('tarlaListesi').innerHTML =
+            '<div class="text-muted" style="font-size:0.82rem;">Veriler yüklenemedi</div>';
+    }
+}
+
+function renderTarlalar(data) {
+    document.getElementById('tarlaCount').textContent = data.length;
+    const el = document.getElementById('tarlaListesi');
+    if (data.length === 0) {
+        el.innerHTML = `<div style="background:#f9f9f9;border-radius:10px;padding:20px;text-align:center;color:#ccc;font-size:0.83rem;">
+            <i class="fas fa-seedling fa-2x mb-2 d-block"></i>Henüz tarla yok
+        </div>`;
+        return;
+    }
+    el.innerHTML = data.map(l => `
+        <div class="tarla-item">
+            <button class="btn-sil" onclick="silTarla(${l.lokasyonId})" title="Sil">
+                <i class="fas fa-trash"></i>
+            </button>
+            <div class="tarla-item-name">${l.isim || 'İsimsiz Tarla'}</div>
+            <div class="tarla-item-info">
+                <i class="fas fa-map-marker-alt me-1 text-success"></i>
+                ${l.sehir}${l.ilce ? ' / ' + l.ilce : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+async function silTarla(id) {
+    if (!confirm('Bu tarlayı silmek istediğinizden emin misiniz?')) return;
+    const res = await fetch(`/api/Lokasyon/${id}`, { method: 'DELETE', headers: tarlaAuthHeaders() });
+    if (res.ok) loadTarlalar();
+    else alert('Silme işlemi başarısız');
+}
+
+/* ── Başlat ──────────────────────────────────────────────────────────────── */
+ilMarkerlariniGoster();
+loadTarlalar();
+requestAnimationFrame(() => {
+    haritaBoyutunuGuncelle();
+    setTimeout(haritaBoyutunuGuncelle, 150);
+    setTimeout(haritaBoyutunuGuncelle, 400);
+});
+window.addEventListener('resize', haritaBoyutunuGuncelle);

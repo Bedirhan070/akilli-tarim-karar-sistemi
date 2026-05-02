@@ -323,7 +323,7 @@
                     Henüz öneri bulunmuyor
                 </div>
             </div>
-            <a href="/Oneri" class="btn btn-sm btn-outline-success w-100 mt-2">Tüm Geçmişi Gör</a>
+            <a href="/Home/OneriGecmisi" class="btn btn-sm btn-outline-success w-100 mt-2">Tüm Geçmişi Gör</a>
         </div>
     </div>
 
@@ -331,11 +331,9 @@
 
 @section Scripts {
 <script>
-    const token = localStorage.getItem('token');
-
     const authHeaders = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
     };
 
     // Lokasyonları yükle
@@ -417,8 +415,9 @@
             document.getElementById('riskScore').textContent = (score * 100).toFixed(0) + '%';
 
             // Anomali badge
-            document.getElementById('anomaliBadge').textContent = data.anomaliVar ? 'Anomali Var' : 'Normal';
-            document.getElementById('anomaliBadge').className = 'badge ' + (data.anomaliVar ? 'bg-danger' : 'bg-success');
+            const anomali = data.anomaliBulundu === true;
+            document.getElementById('anomaliBadge').textContent = anomali ? 'Anomali Var' : 'Normal';
+            document.getElementById('anomaliBadge').className = 'badge ' + (anomali ? 'bg-danger' : 'bg-success');
 
             document.getElementById('sonGuncelleme').textContent = new Date().toLocaleTimeString('tr-TR');
 

@@ -18,7 +18,8 @@
         font-weight: 600;
     }
     .risk-pill.kritik  { background: #ffebee; color: #c62828; }
-    .risk-pill.uyari   { background: #fff8e1; color: #e65100; }
+    .risk-pill.uyari,
+    .risk-pill.uyarı   { background: #fff8e1; color: #e65100; }
     .risk-pill.guvenli { background: #e8f5e9; color: #2e7d32; }
     .risk-pill.bos     { background: #f5f5f5; color: #888; }
     .tavsiye-text {
@@ -112,8 +113,7 @@
 
 @section Scripts {
 <script>
-    const token = localStorage.getItem('token');
-    const headers = { 'Authorization': 'Bearer ' + token };
+    const headers = { 'Authorization': 'Bearer ' + localStorage.getItem('token') };
     let tumOneriler = [];
 
     async function loadOneriler() {
