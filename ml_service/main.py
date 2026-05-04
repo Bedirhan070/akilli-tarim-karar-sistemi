@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import numpy as np
 import pandas as pd
 import joblib
+import os
 from keras.models import load_model
 
 # ==========================================
@@ -14,7 +15,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-MODEL_PATH = "/Users/kasimozel/Desktop/Akıllı Tarım Asistanı/akilli-tarim-karar-sistemi/ml_service/models/"
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models") + "/"
 
 # Modelleri yukle
 isolation_forest = joblib.load(MODEL_PATH + "isolation_forest.pkl")

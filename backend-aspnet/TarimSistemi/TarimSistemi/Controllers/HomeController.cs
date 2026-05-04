@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TarimSistemi.Models;
 using TarimSistemi.Services;
@@ -45,24 +46,28 @@ namespace TarimSistemi.Controllers
             return View();
         }
         // GET: /Home/Dashboard
+        [Authorize]
         public IActionResult Dashboard()
         {
             return View();
         }
 
         // GET: /Home/Lokasyonlar
+        [Authorize]
         public IActionResult Lokasyonlar()
         {
             return View();
         }
 
         // GET: /Home/OneriGecmisi
+        [Authorize]
         public IActionResult OneriGecmisi()
         {
             return View();
         }
 
         // GET: /Home/Hesabim
+        [Authorize]
         public IActionResult Hesabim()
         {
             return View();

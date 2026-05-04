@@ -58,6 +58,13 @@ namespace TarimSistemi.Controllers
                     return BadRequest(new { message = "Geçersiz ürün seçimi" });
             }
 
+            if (Math.Abs(dto.Enlem) < 0.0001m && Math.Abs(dto.Boylam) < 0.0001m)
+                return BadRequest(new { message = "Koordinat eksik veya geçersiz. Tarlalarım haritasından il ve ilçe seçerek kaydedin." });
+
+            // Kabaca Türkiye sınırları dışındaysa (yanlışlıkla 0 veya yurtdışı) uyar
+            if (dto.Enlem < 35.5m || dto.Enlem > 42.5m || dto.Boylam < 25.5m || dto.Boylam > 45.5m)
+                return BadRequest(new { message = "Koordinatlar Türkiye aralığında değil. Haritadan konum seçtiğinizden emin olun." });
+
             var lokasyon = new Lokasyon
             {
                 KullaniciId = kullaniciId,

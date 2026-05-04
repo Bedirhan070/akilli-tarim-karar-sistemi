@@ -51,6 +51,7 @@ namespace TarimSistemi.Controllers
             var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
             var oneriler = await _context.Oneriler
+                .Include(o => o.UrunBilgisi)
                 .Where(o => o.KullaniciId == kullaniciId)
                 .OrderByDescending(o => o.OlusturulmaZamani)
                 .Take(5)

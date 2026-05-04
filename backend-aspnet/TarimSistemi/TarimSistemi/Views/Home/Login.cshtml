@@ -270,6 +270,7 @@
 
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
+                    document.cookie = `tarim_token=${data.token}; path=/; samesite=strict`;
                     window.location.href = '/Home/Dashboard';
                 } else {
                     const err = document.getElementById('errorMessage');

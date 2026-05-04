@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Security.Claims;
+using System.Text;
 using TarimSistemi.Data;
 using TarimSistemi.Models;
 using TarimSistemi.Services;
@@ -16,18 +17,20 @@ namespace TarimSistemi.Controllers
     {
         private readonly TarimDbContext _context;
         private readonly HavaService _havaService;
-        private readonly IConfiguration _config;
+        private readonly MlService _mlService;
+        private readonly ILogger<AnalizController> _logger;
 
-        public AnalizController(TarimDbContext context, HavaService havaService, IConfiguration config)
+        public AnalizController(TarimDbContext context, HavaService havaService, MlService mlService, ILogger<AnalizController> logger)
         {
             _context = context;
             _havaService = havaService;
-            _config = config;
+            _mlService = mlService;
+            _logger = logger;
         }
 
-        // POST /api/Analiz/anlik/{lokasyonId}
+        // POST /api/Analiz/anlik/{lokasyonId}?taze=true — bugünkü önbelleği atıp Open-Meteo'dan yeniden çeker
         [HttpPost("anlik/{lokasyonId}")]
-        public async Task<IActionResult> AnlikAnaliz(int lokasyonId)
+        public async Task<IActionResult> AnlikAnaliz(int lokasyonId, [FromQuery] bool taze = false)
         {
             var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
@@ -44,13 +47,24 @@ namespace TarimSistemi.Controllers
                     message = "Bu tarla için ürün seçilmedi. Tarlalarım sayfasından tarlaya bir ürün atayın."
                 });
 
-            var hava = await _havaService.GetBugunHavasi(lokasyonId);
+            var hava = await _havaService.GetBugunHavasi(lokasyonId, taze);
 
             if (hava == null)
                 return StatusCode(503, new { message = "Hava durumu verisi alınamadı. Lütfen tekrar deneyin." });
 
             var urun = lokasyon.UrunBilgisi;
             var mlSonuc = await MlServisiniCagir(hava, lokasyon, urun);
+
+            var yediGunTahmin = await _havaService.GetYediGunlukTahmin(lokasyonId);
+            var sulamaYagisOnerileri = SulamaVeYagisOnerileri(urun, hava, yediGunTahmin);
+
+            var kayitTavsiye = mlSonuc.TavsiyeMetni;
+            if (sulamaYagisOnerileri.Count > 0)
+            {
+                kayitTavsiye += Environment.NewLine + Environment.NewLine
+                    + "── Sulama ve yağış (5 günlük tahmin) ──" + Environment.NewLine
+                    + string.Join(Environment.NewLine + Environment.NewLine, sulamaYagisOnerileri);
+            }
 
             var oneri = new Oneri
             {
@@ -59,7 +73,7 @@ namespace TarimSistemi.Controllers
                 UrunId = lokasyon.UrunId,
                 RiskSkoru = mlSonuc.RiskSkoru,
                 RiskTipi = mlSonuc.RiskTipi,
-                TavsiyeMetni = mlSonuc.TavsiyeMetni,
+                TavsiyeMetni = kayitTavsiye,
                 OlusturulmaZamani = DateTime.Now
             };
 
@@ -68,27 +82,32 @@ namespace TarimSistemi.Controllers
 
             return Ok(new AnalizSonucDto
             {
-                RiskSkoru = mlSonuc.RiskSkoru,
-                RiskTipi = mlSonuc.RiskTipi,
-                TavsiyeMetni = mlSonuc.TavsiyeMetni,
+                RiskSkoru     = mlSonuc.RiskSkoru,
+                RiskTipi      = mlSonuc.RiskTipi,
+                TavsiyeMetni  = mlSonuc.TavsiyeMetni,
                 AnomaliBulundu = mlSonuc.AnomaliBulundu,
+                MlKullanildi  = mlSonuc.MlKullanildi,
                 RiskEtkenleri = mlSonuc.RiskEtkenleri,
-                UrunId = urun.UrunId,
-                UrunAdi = urun.UrunAdi,
-                UrunOzeti = UrunOzetiMetni(urun),
-                HavaVerisi = new HavaDto
+                UrunId        = urun.UrunId,
+                UrunAdi       = urun.UrunAdi,
+                UrunOzeti     = UrunOzetiMetni(urun),
+                KonumEtiket   = KonumEtiketi(lokasyon),
+                KonumEnlem    = lokasyon.Enlem,
+                KonumBoylam   = lokasyon.Boylam,
+                SulamaYagisOnerileri = sulamaYagisOnerileri.Count > 0 ? sulamaYagisOnerileri : null,
+                HavaVerisi    = new HavaDto
                 {
                     SicaklikMax = hava.SicaklikMax,
                     SicaklikMin = hava.SicaklikMin,
-                    Nem = hava.Nem,
-                    Yagis = hava.Yagis,
-                    RuzgarHizi = hava.RuzgarHizi,
-                    ApiKaynagi = hava.ApiKaynagi
+                    Nem         = hava.Nem,
+                    Yagis       = hava.Yagis,
+                    RuzgarHizi  = hava.RuzgarHizi,
+                    ApiKaynagi  = hava.ApiKaynagi
                 }
             });
         }
 
-        // POST /api/Analiz/tahmin/{lokasyonId}  (LSTM - 7 günlük)
+        // POST /api/Analiz/tahmin/{lokasyonId}  (7 günlük — ML + fallback)
         [HttpPost("tahmin/{lokasyonId}")]
         public async Task<IActionResult> GelecekTahmini(int lokasyonId)
         {
@@ -107,11 +126,41 @@ namespace TarimSistemi.Controllers
                 return StatusCode(503, new { message = "Tahmin verisi alınamadı." });
 
             var urun = lokasyon.UrunBilgisi;
-            var sonuc = tahminVerisi.OrderBy(h => h.Tarih).Select(h =>
+            var sirali = tahminVerisi.OrderBy(h => h.Tarih).ToList();
+
+            // Her gün için ML'den paralel risk skoru al
+            var mlSkorlar = new decimal?[sirali.Count];
+            bool mlKullanildi = false;
+            try
             {
-                var (risk, _) = HesaplaRiskDetay(h, urun, h.Tarih);
-                risk = Math.Min(risk, 1.0m);
-                var skor = Math.Round(risk, 2);
+                var mlGorevler = sirali.Select(h => _mlService.RiskTahminEt(h)).ToArray();
+                var mlSonuclari = await Task.WhenAll(mlGorevler);
+                for (int i = 0; i < mlSonuclari.Length; i++)
+                {
+                    if (mlSonuclari[i] != null)
+                    {
+                        mlSkorlar[i] = Math.Round((decimal)mlSonuclari[i]!.RiskSkoru, 2);
+                        mlKullanildi = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "ML servisi 7 günlük tahmin için yanıt vermedi, kural tabanlı hesaba geçiliyor.");
+            }
+
+            var sonuc = sirali.Select((h, i) =>
+            {
+                decimal skor;
+                if (mlSkorlar[i].HasValue)
+                {
+                    skor = mlSkorlar[i]!.Value;
+                }
+                else
+                {
+                    var (kRisk, _) = HesaplaRiskDetay(h, urun, h.Tarih);
+                    skor = Math.Round(Math.Min(kRisk, 1.0m), 2);
+                }
                 var ozet = skor > 0.70m ? "Kritik" : skor > 0.40m ? "Uyarı" : "Düşük";
                 return new
                 {
@@ -125,34 +174,63 @@ namespace TarimSistemi.Controllers
                     riskSkoru = skor,
                     riskOzeti = ozet
                 };
-            });
+            }).ToList();
 
-            return Ok(new
-            {
-                tahminler = sonuc,
-                urunId = lokasyon.UrunId,
-                urunAdi = urun?.UrunAdi,
-                aciklama = urun == null
+            string aciklama = mlKullanildi
+                ? $"7 günlük risk skoru Random Forest (ML) ile hesaplandı — {urun?.UrunAdi ?? "ürün"} + hava tahmini."
+                : urun == null
                     ? "Ürün atanmadı; günlük risk skoru yalnızca hava etkenlerine göre hesaplanır."
-                    : "Günlük skor, aynı kural motoru ile tahmin edilen hava + ürün ideal aralıklarına göre özetlenir. LSTM ile seri tahmin eklendiğinde bu grafik model çıktısıyla güçlendirilecek."
-            });
+                    : "ML servisi aktif değil; risk skoru kural tabanlı hesaplandı.";
+
+            return Ok(new { tahminler = sonuc, urunId = lokasyon.UrunId, urunAdi = urun?.UrunAdi, mlKullanildi, aciklama });
         }
 
-        private Task<MlSonuc> MlServisiniCagir(HavaVerisi hava, Lokasyon lokasyon, UrunBilgisi urun)
+        private async Task<MlSonuc> MlServisiniCagir(HavaVerisi hava, Lokasyon lokasyon, UrunBilgisi urun)
         {
-            var fastApiUrl = _config["FastApi:BaseUrl"];
-
-            if (!string.IsNullOrEmpty(fastApiUrl))
+            try
             {
-                try
-                {
-                    // FastAPI: POST {BaseUrl}/predict — gövde: lokasyonId, enlem, boylam,
-                    // urun { urunId, urunAdi, ideal*, ekimAylari, hasatSuresiGun }, hava { sicaklik*, nem, yagis, ruzgarHizi }
-                }
-                catch { }
-            }
+                var tahmin  = await _mlService.RiskTahminEt(hava);
+                var anomali = await _mlService.AnomaliTespit(hava);
 
-            return Task.FromResult(KuralTabanliHesapla(hava, urun));
+                var (_, riskler) = HesaplaRiskDetay(hava, urun, DateTime.Today);
+                var riskSkoru = (decimal)(tahmin?.RiskSkoru ?? 0);
+
+                var riskTipi = tahmin?.Seviye switch
+                {
+                    "KRITIK" => "Kritik",
+                    "ORTA"   => "Uyarı",
+                    _        => "Güvenli"
+                };
+
+                string yer = KonumEtiketi(lokasyon);
+                var tavsiye = riskTipi switch
+                {
+                    "Kritik"  =>
+                        $"⛔ {yer} — {urun.UrunAdi} için bugün risk yüksek. "
+                        + string.Join(" ", riskler)
+                        + " Ekim, ilaçlama ve makine işlerini bugün erteleyin. Yarın tekrar bakın.",
+                    "Uyarı"   =>
+                        $"⚠️ {yer} — {urun.UrunAdi} için dikkat gerektiren koşullar var. "
+                        + string.Join(" ", riskler)
+                        + " Tarlayı gözlemleyin; hava düzelirse işlere devam edebilirsiniz.",
+                    _         => GuvenliTavsiyeMetni(lokasyon, urun, hava, riskSkoru, mlKullanildi: true)
+                };
+
+                return new MlSonuc
+                {
+                    RiskSkoru      = Math.Round(riskSkoru, 2),
+                    RiskTipi       = riskTipi,
+                    TavsiyeMetni   = tavsiye,
+                    AnomaliBulundu = anomali?.Durum == "anomali",
+                    MlKullanildi   = true,
+                    RiskEtkenleri  = GenisletilmisRiskListesi(riskler, lokasyon, hava)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "ML servisi anlık analiz için yanıt vermedi, kural tabanlı hesaba geçiliyor. LokasyonId={LokasyonId}", lokasyon.LokasyonId);
+                return KuralTabanliHesapla(hava, lokasyon, urun);
+            }
         }
 
         private static string UrunOzetiMetni(UrunBilgisi u)
@@ -165,6 +243,182 @@ namespace TarimSistemi.Controllers
             if (!string.IsNullOrWhiteSpace(u.EkimAylari))
                 parcalar.Add($"ekim ayları: {u.EkimAylari}");
             return parcalar.Count == 0 ? u.UrunAdi : string.Join(" · ", parcalar);
+        }
+
+        private static string HavaOzetCumlesi(HavaVerisi h)
+        {
+            string max = h.SicaklikMax.HasValue ? Formatta(h.SicaklikMax.Value) + "°C" : "—";
+            string min = h.SicaklikMin.HasValue ? Formatta(h.SicaklikMin.Value) + "°C" : "—";
+            string nem = h.Nem.HasValue ? "%" + Formatta(h.Nem.Value) : "—";
+            string yag = (h.Yagis ?? 0) > 0 ? Formatta(h.Yagis!.Value) + " mm yağmur" : "yağmur yok";
+            string ruz = h.RuzgarHizi.HasValue ? Formatta(h.RuzgarHizi.Value) + " km/s rüzgar" : "rüzgar yok";
+            return $"Bugün: en yüksek {max}, gece en düşük {min}, nem {nem}, {yag}, {ruz}.";
+        }
+
+        private static string Formatta(decimal d) =>
+            d == Math.Truncate(d) ? ((int)d).ToString(CultureInfo.GetCultureInfo("tr-TR"))
+                : d.ToString("0.##", CultureInfo.GetCultureInfo("tr-TR"));
+
+        /// <summary>Güvenli senaryoda hava değerlerine göre bağlamlı, kısa tavsiye üretir.</summary>
+        private static string GuvenliTavsiyeMetni(
+            Lokasyon lokasyon, UrunBilgisi urun, HavaVerisi hava, decimal riskSkoru, bool mlKullanildi)
+        {
+            var tr = CultureInfo.GetCultureInfo("tr-TR");
+            string yer = KonumEtiketi(lokasyon);
+            var sb = new StringBuilder();
+
+            // Bugünkü hava koşuluna göre açılış cümlesi
+            string sicaklik = hava.SicaklikMax.HasValue ? $"{Formatta(hava.SicaklikMax.Value)}°C" : "—";
+            string havaDurumu;
+            if (hava.SicaklikMax.HasValue && hava.SicaklikMax.Value > 30)
+                havaDurumu = $"sıcak bir gün ({sicaklik})";
+            else if (hava.SicaklikMax.HasValue && hava.SicaklikMax.Value < 10)
+                havaDurumu = $"serin bir gün ({sicaklik})";
+            else
+                havaDurumu = $"ılıman hava ({sicaklik})";
+
+            sb.AppendLine($"✅ {yer} — {urun.UrunAdi} için bugün belirgin bir risk yok. {havaDurumu.ToUpperInvariant()[0] + havaDurumu[1..]}.");
+            sb.AppendLine();
+
+            // Sıcaklığa göre özel tavsiye
+            if (hava.SicaklikMax.HasValue && hava.SicaklikMax.Value > 30)
+            {
+                sb.AppendLine("Sıcak havalarda sulamayı sabah erken ya da akşam güneş baterken yapın. Öğle arası verin.");
+            }
+            else if (hava.SicaklikMax.HasValue && hava.SicaklikMax.Value < 10)
+            {
+                sb.AppendLine("Serin havada ilaçlama ve gübre daha yavaş etki eder. Geceleri sıcaklığın sıfıra yaklaşıp yaklaşmadığını takip edin.");
+            }
+            else
+            {
+                sb.AppendLine("Hava ılıman; rutin bakım ve sulama planınızı sürdürebilirsiniz.");
+            }
+
+            // Neme göre ek not
+            if (hava.Nem.HasValue && hava.Yagis.GetValueOrDefault() < 2)
+            {
+                if (hava.Nem.Value < 40)
+                    sb.AppendLine($"Nem düşük (%{Formatta(hava.Nem.Value)}); toprağı elle yoklayın, kuru görünüyorsa sulama yapın.");
+                else if (hava.Nem.Value > 75)
+                    sb.AppendLine($"Nem yüksek (%{Formatta(hava.Nem.Value)}); yaprakları küf veya leke için gözlemleyin.");
+            }
+
+            // Rüzgara göre ek not
+            if (hava.RuzgarHizi.HasValue && hava.RuzgarHizi.Value > 25)
+                sb.AppendLine($"Rüzgar var ({Formatta(hava.RuzgarHizi.Value)} km/s); ilaçlama için daha sakin bir gün bekleyin.");
+
+            return sb.ToString().TrimEnd();
+        }
+
+        private static string KonumEtiketi(Lokasyon l) =>
+            string.IsNullOrWhiteSpace(l.Ilce)
+                ? l.Sehir
+                : $"{l.Ilce}, {l.Sehir}";
+
+        /// <summary>
+        /// 5 günlük yağış tahmini ve ürün tipine göre sulama yönlendirmesi (eğitim projesi — sahada toprak nemi ile doğrulanmalı).
+        /// </summary>
+        private static List<string> SulamaVeYagisOnerileri(
+            UrunBilgisi urun, HavaVerisi bugun, List<HavaVerisi>? tahminGunler)
+        {
+            var sonuc = new List<string>();
+            var tr = CultureInfo.GetCultureInfo("tr-TR");
+
+            if (tahminGunler == null || tahminGunler.Count == 0)
+            {
+                sonuc.Add(
+                    "5 günlük yağış tahmini alınamadı. Sulama planı için sayfayı yenileyip tekrar analiz alın veya alttaki 7 günlük tahmin tablosunu kullanın.");
+                return sonuc;
+            }
+
+            var gunler = tahminGunler.OrderBy(h => h.Tarih).Take(5).ToList();
+            decimal toplamYagis = gunler.Sum(h => h.Yagis ?? 0);
+            var maksler = gunler.Where(h => h.SicaklikMax.HasValue).Select(h => h.SicaklikMax!.Value).ToList();
+            decimal? ortMaks = maksler.Count > 0
+                ? Math.Round(maksler.Average(), 1, MidpointRounding.AwayFromZero)
+                : null;
+
+            string gunSatirlari = string.Join(" · ", gunler.Select(h =>
+            {
+                string gunAdi = h.Tarih.ToString("ddd", tr);
+                decimal y = h.Yagis ?? 0;
+                return $"{gunAdi} {h.Tarih:dd.MM}: {Formatta(y)} mm";
+            }));
+
+            sonuc.Add(
+                $"💧 Önümüzdeki 5 günlük yağış tahmini: {gunSatirlari}. Toplam yaklaşık {Formatta(toplamYagis)} mm bekleniyor.");
+
+            string ad = urun.UrunAdi.Trim();
+            bool bugday = ad.Contains("Buğday", StringComparison.OrdinalIgnoreCase);
+            bool arpa = ad.Contains("Arpa", StringComparison.OrdinalIgnoreCase);
+            bool misir = ad.Contains("Mısır", StringComparison.OrdinalIgnoreCase);
+            decimal nemMinRef = urun.IdealNemMin ?? 40;
+            bool nemDusuk = bugun.Nem.HasValue && bugun.Nem.Value < nemMinRef - 8;
+            bool sicak = bugun.SicaklikMax.HasValue && bugun.SicaklikMax.Value >= 22;
+
+            if (bugday || arpa)
+            {
+                if (toplamYagis < 5m)
+                {
+                    string ekStr = (sicak || nemDusuk)
+                        ? "Bugün hava da sıcak veya kuru; sulamayı geciktirmeyin."
+                        : "Bir sonraki yağışa kadar toprağı gözlemleyin.";
+                    sonuc.Add(
+                        $"{urun.UrunAdi} için bu hafta yağmur az (~{Formatta(toplamYagis)} mm). "
+                        + $"Toprağı elle yoklayın; kuru ise sulayın. {ekStr}");
+                }
+                else if (toplamYagis < 20m)
+                {
+                    sonuc.Add(
+                        $"Yağmur biraz var (~{Formatta(toplamYagis)} mm / 5 gün), ortalama sıcaklık ~{ortMaks?.ToString("0.#", tr) ?? "—"}°C. "
+                        + "Toprak hâlâ kuruyorsa ek sulama yapın; nemliyse bekleyebilirsiniz.");
+                }
+                else
+                {
+                    sonuc.Add(
+                        $"Bu hafta yeterli yağmur bekleniyor (~{Formatta(toplamYagis)} mm). "
+                        + "Sulama yapmayın; su birikintisine dikkat edin.");
+                }
+            }
+            else if (misir)
+            {
+                if (toplamYagis < 8m && sicak)
+                {
+                    sonuc.Add(
+                        "Mısır sıcakta çok su ister; bu hafta yağmur az. Toprağı kontrol edip sulamayı aksatmayın.");
+                }
+                else if (toplamYagis >= 30m)
+                    sonuc.Add("Bu hafta çok yağmur var. Sulamayı bırakın; su birikintisi ve kök çürümesine dikkat edin.");
+                else
+                    sonuc.Add(
+                        $"Yağış toplamı ~{Formatta(toplamYagis)} mm. Toprağa bakarak sulama kararı verin.");
+            }
+            else
+            {
+                string nemBugün = bugun.Nem.HasValue ? $"%{bugun.Nem.Value.ToString("0.#", tr)}" : "—";
+                sonuc.Add(
+                    $"Bugün nem {nemBugün}; bu hafta toplam ~{Formatta(toplamYagis)} mm yağmur bekleniyor. "
+                    + "Toprak ve bitkiye bakarak sulama kararı verin.");
+            }
+
+            return sonuc;
+        }
+
+        private static List<string> GenisletilmisRiskListesi(List<string> riskler, Lokasyon lokasyon, HavaVerisi hava)
+        {
+            if (riskler == null || riskler.Count == 0)
+            {
+                string yer = KonumEtiketi(lokasyon);
+                string sicaklik = hava.SicaklikMax.HasValue ? $"{Formatta(hava.SicaklikMax.Value)}°C" : "—";
+                string nem = hava.Nem.HasValue ? $"%{Formatta(hava.Nem.Value)}" : "—";
+                string yagis = (hava.Yagis ?? 0) > 0 ? $"{Formatta(hava.Yagis!.Value)} mm yağış" : "yağış yok";
+                return new List<string>
+                {
+                    $"✅ Bugün {yer} için dikkat çeken bir risk yok. Sıcaklık {sicaklik}, nem {nem}, {yagis}."
+                };
+            }
+
+            return riskler;
         }
 
         private static List<int> EkimAylariniOku(string? ekimAylari)
@@ -193,31 +447,42 @@ namespace TarimSistemi.Controllers
             if (hava.SicaklikMin.HasValue && hava.SicaklikMin < 2)
             {
                 risk += 0.5m;
-                riskler.Add("don riski");
+                string donSiddet = hava.SicaklikMin.Value < -3 ? "Dondurucu soğuk" : "Don tehlikesi";
+                riskler.Add(
+                    $"❄️ {donSiddet} — gece sıcaklığı {Formatta(hava.SicaklikMin.Value)}°C. "
+                    + "Çiçekli veya meyveli bitkilerinizi örtün; sabah erken tarlayı kontrol edin.");
             }
 
             if (hava.SicaklikMax.HasValue && hava.SicaklikMax > 38)
             {
                 risk += 0.3m;
-                riskler.Add("aşırı sıcaklık");
+                riskler.Add(
+                    $"🌡️ Kavurucu sıcak — bugün {Formatta(hava.SicaklikMax.Value)}°C. "
+                    + "Öğle saatlerinde tarlada çalışmayın; sabah erken veya akşam üstü sulayın.");
             }
 
             if (hava.Yagis.HasValue && hava.Yagis > 30)
             {
                 risk += 0.25m;
-                riskler.Add("yoğun yağış");
+                riskler.Add(
+                    $"🌧️ Yoğun yağış — {Formatta(hava.Yagis.Value)} mm yağdı. "
+                    + "Tarlaya traktörle girmeyin; su birikmesine dikkat edin.");
             }
 
             if (hava.Nem.HasValue && hava.Nem < 30 && (hava.Yagis == null || hava.Yagis < 1))
             {
                 risk += 0.2m;
-                riskler.Add("kuraklık");
+                riskler.Add(
+                    $"🏜️ Hava çok kuru — nem %{Formatta(hava.Nem.Value)}, yağış yok. "
+                    + "Toprağınızı kontrol edin; kuruyorsa sulamayı bekletmeyin.");
             }
 
             if (hava.RuzgarHizi.HasValue && hava.RuzgarHizi > 60)
             {
                 risk += 0.2m;
-                riskler.Add("şiddetli rüzgar");
+                riskler.Add(
+                    $"💨 Kuvvetli rüzgar — {Formatta(hava.RuzgarHizi.Value)} km/s. "
+                    + "Bugün ilaçlama ve gübre sıkma yapmayın; rüzgar dinene kadar bekleyin.");
             }
 
             if (urun != null)
@@ -226,67 +491,92 @@ namespace TarimSistemi.Controllers
                     && hava.SicaklikMax > urun.IdealSicaklikMax + 3)
                 {
                     risk += 0.22m;
-                    riskler.Add($"{urun.UrunAdi} için sıcaklık üst idealin üzerinde");
+                    riskler.Add(
+                        $"🌿 {urun.UrunAdi} için hava fazla sıcak — {Formatta(hava.SicaklikMax.Value)}°C "
+                        + $"(bu ürün için üst sınır ~{Formatta(urun.IdealSicaklikMax.Value)}°C). "
+                        + "Öğle sıcağında sulamayı artırın; yapraklarda yanma varsa gölge verin.");
                 }
 
                 if (urun.IdealSicaklikMin.HasValue && hava.SicaklikMin.HasValue
                     && hava.SicaklikMin < urun.IdealSicaklikMin - 2)
                 {
                     risk += 0.2m;
-                    riskler.Add($"{urun.UrunAdi} için sıcaklık alt idealin altında");
+                    riskler.Add(
+                        $"🌿 {urun.UrunAdi} için hava fazla soğuk — {Formatta(hava.SicaklikMin.Value)}°C "
+                        + $"(bu ürün için alt sınır ~{Formatta(urun.IdealSicaklikMin.Value)}°C). "
+                        + "Büyüme yavaşlayabilir; don riski varsa bitkilerinizi koruyun.");
                 }
 
                 if (urun.IdealNemMin.HasValue && hava.Nem.HasValue && hava.Nem < urun.IdealNemMin - 10)
                 {
                     risk += 0.15m;
-                    riskler.Add($"{urun.UrunAdi} için nem düşük");
+                    riskler.Add(
+                        $"💧 {urun.UrunAdi} susuz kalıyor olabilir — nem %{Formatta(hava.Nem.Value)} "
+                        + $"(bu ürün için ideal %{Formatta(urun.IdealNemMin.Value)} üzeri). "
+                        + "Toprağı elle yoklayın; kuru ise sulama yapın.");
                 }
 
                 if (urun.IdealNemMax.HasValue && hava.Nem.HasValue && hava.Nem > urun.IdealNemMax + 15)
                 {
                     risk += 0.12m;
-                    riskler.Add($"{urun.UrunAdi} için nem yüksek");
+                    riskler.Add(
+                        $"🍄 Hastalık riski — nem çok yüksek (%{Formatta(hava.Nem.Value)}). "
+                        + $"{urun.UrunAdi} için ideal nem %{Formatta(urun.IdealNemMax.Value)} altında olmalı. "
+                        + "Yaprakları kontrol edin; küf veya leke varsa ilaçlamayı düşünün.");
                 }
 
                 var ekimAylari = EkimAylariniOku(urun.EkimAylari);
                 if (ekimAylari.Count > 0 && !ekimAylari.Contains(referansGun.Month))
                 {
                     risk += 0.08m;
-                    riskler.Add("tipik ekim ayı dışı (mevsimsel dikkat)");
+                    var trCal = CultureInfo.GetCultureInfo("tr-TR");
+                    string buAy = trCal.DateTimeFormat.GetMonthName(referansGun.Month);
+                    var liste = ekimAylari.Select(a => trCal.DateTimeFormat.GetMonthName(a)).ToList();
+                    riskler.Add(
+                        $"📅 Mevsim hatırlatması — {buAy} ayındasınız; {urun.UrunAdi} için tipik ekim zamanı: {string.Join(", ", liste)}. "
+                        + "Bakım ve hasat takviminizi gözden geçirin.");
                 }
             }
 
             return (risk, riskler);
         }
 
-        private static MlSonuc KuralTabanliHesapla(HavaVerisi hava, UrunBilgisi urun)
+        private static MlSonuc KuralTabanliHesapla(HavaVerisi hava, Lokasyon lokasyon, UrunBilgisi urun)
         {
             var (risk, riskler) = HesaplaRiskDetay(hava, urun, DateTime.Today);
             risk = Math.Min(risk, 1.0m);
 
             string tavsiye;
             string riskTipi;
+            string yerKural = KonumEtiketi(lokasyon);
 
             if (risk > 0.70m)
             {
                 riskTipi = "Kritik";
-                tavsiye = riskler.Contains("don riski")
-                    ? $"KRİTİK: {urun.UrunAdi} için don riski (Min: {hava.SicaklikMin}°C). Koruma ve erteleme değerlendirin."
-                    : $"KRİTİK ({urun.UrunAdi}): {string.Join(", ", riskler)}. Operasyonları gözden geçirin.";
+                bool don = riskler.Any(r => r.Contains("don", StringComparison.OrdinalIgnoreCase));
+                tavsiye = don
+                    ? $"⛔ {yerKural} — {urun.UrunAdi} için don tehlikesi! Gece sıcaklığı {hava.SicaklikMin}°C. "
+                      + "Hassas bitkilerinizi örtün; sabah erken tarlayı kontrol edin."
+                    : $"⛔ {yerKural} — {urun.UrunAdi} için bugün risk yüksek. "
+                      + string.Join(" ", riskler)
+                      + " Tarlada makine işi, ilaçlama ve ekim yapmayın; hava düzelince devam edin.";
             }
             else if (risk > 0.40m)
             {
                 riskTipi = "Uyarı";
-                tavsiye = riskler.Any(r => r.Contains("nem düşük", StringComparison.OrdinalIgnoreCase)
-                    || r.Contains("kuraklık", StringComparison.OrdinalIgnoreCase))
-                    ? $"UYARI ({urun.UrunAdi}): Nem/kuraklık riski (Nem: %{hava.Nem}). Sulama planını güncelleyin."
-                    : $"UYARI ({urun.UrunAdi}): {string.Join(", ", riskler)}. Takibi artırın.";
+                bool kuru = riskler.Any(r => r.Contains("kuru", StringComparison.OrdinalIgnoreCase)
+                    || r.Contains("nem", StringComparison.OrdinalIgnoreCase));
+                tavsiye = kuru
+                    ? $"⚠️ {yerKural} — {urun.UrunAdi} tarlası kuruma belirtisi gösteriyor (nem %{hava.Nem}). "
+                      + "Toprağı kontrol edin; gerekirse sulayın. Yarın tekrar bakın."
+                    : $"⚠️ {yerKural} — {urun.UrunAdi} için dikkat. "
+                      + string.Join(" ", riskler)
+                      + " Tarlayı gözlemleyin; hava düzelirse işlere devam edebilirsiniz.";
             }
             else
             {
                 riskTipi = "Güvenli";
-                tavsiye =
-                    $"Tarımsal koşullar {urun.UrunAdi} için genel olarak uygun. Sıcaklık: {hava.SicaklikMax}°C, nem: %{hava.Nem}. {UrunOzetiMetni(urun)}";
+                tavsiye = GuvenliTavsiyeMetni(lokasyon, urun, hava, risk, mlKullanildi: false);
             }
 
             return new MlSonuc
@@ -295,7 +585,7 @@ namespace TarimSistemi.Controllers
                 RiskTipi = riskTipi,
                 TavsiyeMetni = tavsiye,
                 AnomaliBulundu = false,
-                RiskEtkenleri = riskler.Count > 0 ? riskler : new List<string> { "Belirgin risk etkeni yok; rutin izlemeye devam edin." }
+                RiskEtkenleri = GenisletilmisRiskListesi(riskler, lokasyon, hava)
             };
         }
     }
@@ -306,10 +596,17 @@ namespace TarimSistemi.Controllers
         public string? RiskTipi { get; set; }
         public string? TavsiyeMetni { get; set; }
         public bool AnomaliBulundu { get; set; }
+        public bool MlKullanildi { get; set; }
         public List<string>? RiskEtkenleri { get; set; }
         public int? UrunId { get; set; }
         public string? UrunAdi { get; set; }
         public string? UrunOzeti { get; set; }
+        /// <summary>Analizde kullanılan tarla konumu (Open-Meteo isteği bu koordinatlarla yapılır).</summary>
+        public string? KonumEtiket { get; set; }
+        public decimal? KonumEnlem { get; set; }
+        public decimal? KonumBoylam { get; set; }
+        /// <summary>Open-Meteo 5 günlük yağış tahmini + ürüne göre sulama ipuçları.</summary>
+        public List<string>? SulamaYagisOnerileri { get; set; }
         public HavaDto? HavaVerisi { get; set; }
     }
 
@@ -329,6 +626,7 @@ namespace TarimSistemi.Controllers
         public string? RiskTipi { get; set; }
         public string? TavsiyeMetni { get; set; }
         public bool AnomaliBulundu { get; set; }
+        public bool MlKullanildi { get; set; }
         public List<string> RiskEtkenleri { get; set; } = new();
     }
 }

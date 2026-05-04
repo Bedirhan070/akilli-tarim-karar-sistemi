@@ -380,6 +380,10 @@
             <a href="#" id="btnCikis" class="nav-link">
                 <i class="fas fa-sign-out-alt"></i> Çıkış Yap
             </a>
+            <div id="mlDurumSatir" style="padding:10px 14px 4px; display:flex; align-items:center; gap:8px;">
+                <span id="mlDurumNokta" style="width:9px;height:9px;border-radius:50%;background:#555;flex-shrink:0;transition:background 0.4s;"></span>
+                <span id="mlDurumMetin" style="font-size:0.72rem;color:rgba(255,255,255,0.45);font-weight:600;">ML servisi kontrol ediliyor...</span>
+            </div>
         </div>
     </div>
 
@@ -435,6 +439,7 @@
         document.getElementById('btnCikis').addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.removeItem('token');
+            document.cookie = 'tarim_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; samesite=strict';
             window.location.href = '/Home/Login';
         });
 
@@ -459,6 +464,33 @@
             window.addEventListener('resize', function () {
                 if (window.innerWidth >= 992) close();
             });
+        })();
+
+        (function mlDurumKontrol() {
+            var nokta = document.getElementById('mlDurumNokta');
+            var metin = document.getElementById('mlDurumMetin');
+            function kontrol() {
+                fetch('/api/Sistem/durum')
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        if (d.mlAktif) {
+                            nokta.style.background = '#66bb6a';
+                            metin.textContent = 'ML servisi aktif';
+                            metin.style.color = 'rgba(102,187,106,0.85)';
+                        } else {
+                            nokta.style.background = '#ef5350';
+                            metin.textContent = 'ML servisi kapalı';
+                            metin.style.color = 'rgba(239,83,80,0.75)';
+                        }
+                    })
+                    .catch(function () {
+                        nokta.style.background = '#555';
+                        metin.textContent = 'ML servisi ulaşılamıyor';
+                        metin.style.color = 'rgba(255,255,255,0.35)';
+                    });
+            }
+            kontrol();
+            setInterval(kontrol, 30000);
         })();
 
         (function sidebarDashboardHash() {

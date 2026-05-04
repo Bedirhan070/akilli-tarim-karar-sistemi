@@ -248,6 +248,12 @@
         margin-top: 4px;
     }
 
+    .risk-etken-listesi li {
+        margin-bottom: 0.55rem;
+        line-height: 1.55;
+    }
+    .risk-etken-listesi li:last-child { margin-bottom: 0; }
+
     .section-title {
         font-size: 1rem;
         font-weight: 600;
@@ -593,10 +599,14 @@
                 </div>
             </div>
             <div class="mt-3 pt-3 border-top">
-                <div class="small fw-bold text-secondary mb-2">
+                <div class="small fw-bold text-secondary mb-1">
                     <i class="fas fa-list-ul me-1 text-success"></i>Anlık risk dökümü
                 </div>
-                <ul id="riskEtkenListesi" class="small mb-0 ps-3 text-muted" style="line-height:1.55;">
+                <p class="text-muted mb-2" style="font-size:0.72rem;line-height:1.45;">
+                    Aşağıdaki maddeler, <strong>bugünkü ölçümlerin</strong> (sıcaklık, yağış, nem, rüzgar) hem genel eşiklere hem de seçtiğiniz ürünün <strong>ideal aralıklarına</strong> göre otomatik yorumudur.
+                    Skor düşük olsa bile “mevsim notu” çıkabilir; bu tek başına zararlı hava demek değildir.
+                </p>
+                <ul id="riskEtkenListesi" class="small mb-0 ps-3 text-muted risk-etken-listesi">
                     <li>Tarla seçip <strong>Analiz Et</strong> dediğinizde, hava ve ürün idealine göre risk etkenleri burada listelenir.</li>
                 </ul>
             </div>
@@ -632,6 +642,10 @@
                     <span class="label"><i class="fas fa-satellite-dish me-1"></i>Kaynak</span>
                     <span class="val" id="hwKaynak">-</span>
                 </div>
+                <div class="weather-item small text-muted" id="hwKonumSatir" style="display:none;border-top:1px dashed #eee;padding-top:10px;margin-top:4px;">
+                    <span class="label"><i class="fas fa-map-pin me-1"></i>Bu analiz konumu</span>
+                    <span class="val text-end" style="max-width:58%;font-size:0.8rem;" id="hwKonum">-</span>
+                </div>
             </div>
         </div>
     </div>
@@ -640,6 +654,9 @@
     <div class="col-md-4">
         <div class="info-card">
             <h6><i class="fas fa-seedling me-2 text-success"></i>Aksiyon Önerisi</h6>
+            <p class="text-muted small mb-2" style="font-size:0.75rem;line-height:1.45;">
+                Özet: ML risk skoru ve kural tabanlı kontroller birlikte değerlendirilir. Metin, <strong>ne anlama geldiğini</strong> ve <strong>pratikte ne yapmanızı</strong> önerdiğimizi adım adım açıklar.
+            </p>
             <div id="oneriContainer">
                 <div class="text-center text-muted py-3">
                     <i class="fas fa-info-circle fa-2x mb-2 d-block" style="opacity:0.3"></i>
@@ -726,6 +743,24 @@
     let lokasyonCache = [];
 
     const riskEtkenVarsayilanHtml = `<li>Tarla seçip <strong>Analiz Et</strong> dediğinizde, hava ve ürün idealine göre risk etkenleri burada listelenir.</li>`;
+
+    function htmlEscape(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    /** API’den gelen tavsiye metnini boş satırlara göre paragraflara böler (daha okunaklı kart). */
+    function tavsiyeParagraflarHtml(metin) {
+        if (!metin) return '';
+        return metin.split(/\r?\n\r?\n+/)
+            .map(p => p.trim())
+            .filter(Boolean)
+            .map(p => `<p class="small text-body mb-2 lh-sm mb-sm-2" style="text-align:left;">${htmlEscape(p).replace(/\r?\n/g, '<br>')}</p>`)
+            .join('');
+    }
 
     function guncelleSeciliTarlaBaslik() {
         const lokId = document.getElementById('lokasyonSecim').value;
@@ -822,6 +857,18 @@
                 return;
             }
             tahminVerisiniCiz(data);
+
+            // Tahmin başlığındaki ML rozetini güncelle
+            const mlBadge = document.querySelector('#analiz-tahmin .info-card h6 .badge.border.text-muted');
+            if (mlBadge) {
+                if (data.mlKullanildi) {
+                    mlBadge.textContent = 'Random Forest aktif';
+                    mlBadge.className = 'badge border bg-primary text-white';
+                } else {
+                    mlBadge.textContent = 'ML kapalı → kural tabanı';
+                    mlBadge.className = 'badge border text-muted bg-white';
+                }
+            }
         } catch (e) {
             if (!sessiz) alert('Bağlantı hatası: ' + e.message);
         } finally {
@@ -951,7 +998,7 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Analiz ediliyor...';
 
         try {
-            const res = await fetch(`/api/Analiz/anlik/${lokId}`, {
+            const res = await fetch(`/api/Analiz/anlik/${lokId}?taze=false`, {
                 method: 'POST',
                 headers: authHeaders
             });
@@ -985,6 +1032,16 @@
 
             document.getElementById('sonGuncelleme').textContent = new Date().toLocaleTimeString('tr-TR');
 
+            // Model badge güncelle
+            const modelBadgeEl = document.getElementById('modelBadge');
+            if (data.mlKullanildi) {
+                modelBadgeEl.textContent = 'Random Forest + Isolation Forest';
+                modelBadgeEl.className = 'badge bg-primary';
+            } else {
+                modelBadgeEl.textContent = 'Kural tabanı (ML kapalı)';
+                modelBadgeEl.className = 'badge bg-secondary';
+            }
+
             riskEtkenleriniGoster(data.riskEtkenleri);
 
             // Hava durumu
@@ -1000,18 +1057,41 @@
                 document.getElementById('statNem').textContent = hw.nem != null ? '%' + hw.nem : '-';
             }
 
-            // Öneri metni
+            const kSatir = document.getElementById('hwKonumSatir');
+            const kVal = document.getElementById('hwKonum');
+            if (data.konumEtiket && (data.konumEnlem != null || data.konumBoylam != null)) {
+                kSatir.style.display = 'flex';
+                const ko = (data.konumEnlem != null && data.konumBoylam != null)
+                    ? `${htmlEscape(data.konumEtiket)} (${data.konumEnlem}, ${data.konumBoylam})`
+                    : htmlEscape(data.konumEtiket);
+                kVal.textContent = ko;
+            } else {
+                kSatir.style.display = 'none';
+                kVal.textContent = '-';
+            }
+
+            // Öneri metni (çok paragraflı, XSS’e karşı kaçışlı)
             if (data.tavsiyeMetni) {
                 const seviye = score > 0.70 ? 'kritik' : score > 0.40 ? 'uyarı' : '';
                 const urunBas = data.urunAdi
-                    ? `<div class="mb-2"><span class="badge bg-success" style="font-size:0.72rem;">${data.urunAdi}</span>`
-                      + (data.urunOzeti ? `<div class="text-muted mt-1" style="font-size:0.78rem;">${data.urunOzeti}</div>` : '')
+                    ? `<div class="mb-2"><span class="badge bg-success" style="font-size:0.72rem;">${htmlEscape(data.urunAdi)}</span>`
+                      + (data.urunOzeti ? `<div class="text-muted mt-1" style="font-size:0.78rem;">${htmlEscape(data.urunOzeti)}</div>` : '')
                       + `</div>` : '';
+                let sulamaBlok = '';
+                if (data.sulamaYagisOnerileri && data.sulamaYagisOnerileri.length) {
+                    sulamaBlok = `
+                    <div class="oneri-item ${seviye}" style="border-left-color:#1976d2;margin-top:10px;">
+                        <div class="fw-semibold small text-primary mb-2"><i class="fas fa-tint me-1"></i>Sulama ve yağış (5 gün tahmini)</div>
+                        <ul class="small mb-0 ps-3 text-body" style="line-height:1.55;">
+                            ${data.sulamaYagisOnerileri.map(x => `<li>${htmlEscape(String(x))}</li>`).join('')}
+                        </ul>
+                    </div>`;
+                }
                 document.getElementById('oneriContainer').innerHTML = urunBas + `
                     <div class="oneri-item ${seviye}">
-                        <i class="fas fa-info-circle me-1"></i>
-                        ${data.tavsiyeMetni}
-                    </div>`;
+                        <div class="fw-semibold small text-secondary mb-2"><i class="fas fa-directions me-1"></i>Yorum ve önerilen adımlar</div>
+                        ${tavsiyeParagraflarHtml(data.tavsiyeMetni)}
+                    </div>` + sulamaBlok;
             }
 
             await loadSonOneriler();

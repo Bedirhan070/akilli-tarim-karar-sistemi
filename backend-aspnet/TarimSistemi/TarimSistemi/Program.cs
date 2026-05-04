@@ -54,6 +54,13 @@ namespace TarimSistemi
             builder.Services.AddScoped<IEmailGonderici, SmtpEmailGonderici>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddHttpClient<HavaService>();
+            builder.Services.AddHttpClient<MlService>(client =>
+            {
+                var baseUrl = builder.Configuration["FastApi:BaseUrl"];
+                if (!string.IsNullOrWhiteSpace(baseUrl))
+                    client.BaseAddress = new Uri(baseUrl);
+                client.Timeout = TimeSpan.FromSeconds(10);
+            });
 
             // JWT Authentication
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -69,6 +76,27 @@ namespace TarimSistemi
                         ValidAudience = builder.Configuration["Jwt:Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+                    };
+
+                    // MVC view'ları için: token'ı cookie'den de oku
+                    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                    {
+                        OnMessageReceived = ctx =>
+                        {
+                            if (string.IsNullOrEmpty(ctx.Token))
+                                ctx.Token = ctx.Request.Cookies["tarim_token"];
+                            return Task.CompletedTask;
+                        },
+                        // API dışı route'larda 401 yerine login sayfasına yönlendir
+                        OnChallenge = ctx =>
+                        {
+                            if (!ctx.Request.Path.StartsWithSegments("/api"))
+                            {
+                                ctx.HandleResponse();
+                                ctx.Response.Redirect("/Home/Login");
+                            }
+                            return Task.CompletedTask;
+                        }
                     };
                 });
 

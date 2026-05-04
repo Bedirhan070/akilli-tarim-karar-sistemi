@@ -9,17 +9,32 @@ namespace TarimSistemi.Services
     {
         private readonly TarimDbContext _context;
         private readonly HttpClient _httpClient;
+        private readonly ILogger<HavaService> _logger;
 
-        public HavaService(TarimDbContext context, HttpClient httpClient)
+        public HavaService(TarimDbContext context, HttpClient httpClient, ILogger<HavaService> logger)
         {
             _context = context;
             _httpClient = httpClient;
+            _logger = logger;
         }
 
         // Bugünün hava verisini döner — önce DB cache'e bakar, yoksa Open-Meteo'dan çeker
-        public async Task<HavaVerisi?> GetBugunHavasi(int lokasyonId)
+        /// <param name="tazeVeri">true ise bugünkü satırlar silinir ve API'den yeniden çekilir (test / koordinat düzeltmesi sonrası).</param>
+        public async Task<HavaVerisi?> GetBugunHavasi(int lokasyonId, bool tazeVeri = false)
         {
             var bugun = DateTime.Today;
+
+            if (tazeVeri)
+            {
+                var eskiGunluk = await _context.HavaVerileri
+                    .Where(h => h.LokasyonId == lokasyonId && h.Tarih == bugun)
+                    .ToListAsync();
+                if (eskiGunluk.Count > 0)
+                {
+                    _context.HavaVerileri.RemoveRange(eskiGunluk);
+                    await _context.SaveChangesAsync();
+                }
+            }
 
             var cached = await _context.HavaVerileri
                 .FirstOrDefaultAsync(h => h.LokasyonId == lokasyonId && h.Tarih == bugun && !h.AnomaliDurumu);
@@ -86,8 +101,9 @@ namespace TarimSistemi.Services
 
                 return hava;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Open-Meteo API isteği başarısız. LokasyonId={LokasyonId}", lokasyon.LokasyonId);
                 return null;
             }
         }
@@ -133,8 +149,9 @@ namespace TarimSistemi.Services
 
                 return liste;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Open-Meteo çok günlük tahmin isteği başarısız. LokasyonId={LokasyonId}", lokasyon.LokasyonId);
                 return new List<HavaVerisi>();
             }
         }
