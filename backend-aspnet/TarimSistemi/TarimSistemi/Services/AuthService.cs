@@ -159,7 +159,8 @@ namespace TarimSistemi.Services
                     SonGirisTarihi = k.SonGirisTarihi,
                     EmailOnayli = k.EmailOnayli,
                     SifreDegisikligiOnayBekliyor = k.BekleyenSifreHash != null && k.SifreOnayToken != null,
-                    SifreOnaySonUtc = k.SifreOnayTokenSon
+                    SifreOnaySonUtc = k.SifreOnayTokenSon,
+                    TelegramChatId = k.TelegramChatId
                 })
                 .FirstOrDefaultAsync();
         }
@@ -300,6 +301,48 @@ namespace TarimSistemi.Services
             k.SifreSifirlamaTokenSon = null;
             await _context.SaveChangesAsync();
             return (true, "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.");
+        }
+
+        public async Task<(bool Ok, string? Token, string Message)> UretTelegramBaglamaTokenu(int kullaniciId)
+        {
+            var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.KullaniciId == kullaniciId);
+            if (k == null) return (false, null, "Kullanıcı bulunamadı.");
+
+            var token = UretUrlToken();
+            k.TelegramBaglamaToken = token;
+            k.TelegramBaglamaTokenSon = DateTime.UtcNow.AddMinutes(30);
+            await _context.SaveChangesAsync();
+            return (true, token, "Bağlama linki oluşturuldu.");
+        }
+
+        public async Task<(bool Ok, string Message)> TelegramBaglamaTokenuDogrula(string token, string chatId)
+        {
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId))
+                return (false, "Geçersiz istek.");
+
+            var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.TelegramBaglamaToken == token);
+            if (k == null)
+                return (false, "Bağlama bağlantısı geçersiz veya zaten kullanılmış.");
+
+            if (k.TelegramBaglamaTokenSon == null || k.TelegramBaglamaTokenSon < DateTime.UtcNow)
+                return (false, "Bağlama süresi dolmuş. Uygulamadan yeni link alın.");
+
+            k.TelegramChatId = chatId.Trim();
+            k.TelegramBaglamaToken = null;
+            k.TelegramBaglamaTokenSon = null;
+            await _context.SaveChangesAsync();
+            return (true, k.AdSoyad);
+        }
+
+        public async Task<(bool Ok, string Message)> KaydetTelegramAsync(int kullaniciId, string? chatId)
+        {
+            var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.KullaniciId == kullaniciId);
+            if (k == null)
+                return (false, "Kullanıcı bulunamadı.");
+
+            k.TelegramChatId = string.IsNullOrWhiteSpace(chatId) ? null : chatId.Trim();
+            await _context.SaveChangesAsync();
+            return (true, k.TelegramChatId == null ? "Telegram bildirimi kaldırıldı." : "Telegram chat ID kaydedildi.");
         }
 
         private string BuildJwtToken(Kullanici kullanici)

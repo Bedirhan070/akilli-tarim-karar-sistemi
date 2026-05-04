@@ -30,6 +30,13 @@ namespace TarimSistemi.Models
         public string? SifreSifirlamaToken { get; set; }
         public DateTime? SifreSifirlamaTokenSon { get; set; }
 
+        /// <summary>Kritik risk bildirimlerinin gönderileceği Telegram chat ID.</summary>
+        public string? TelegramChatId { get; set; }
+
+        /// <summary>Deep-link bağlama akışı için tek kullanımlık token (30 dk geçerli).</summary>
+        public string? TelegramBaglamaToken { get; set; }
+        public DateTime? TelegramBaglamaTokenSon { get; set; }
+
         // İlişkiler
         public ICollection<Lokasyon> Lokasyonlar { get; set; }
         public ICollection<Oneri> Oneriler { get; set; }

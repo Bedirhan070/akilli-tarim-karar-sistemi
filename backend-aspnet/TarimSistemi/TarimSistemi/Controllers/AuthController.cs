@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using TarimSistemi.Services;
+using TarimSistemi.Models;
 
 namespace TarimSistemi.Controllers
 {
@@ -10,10 +11,16 @@ namespace TarimSistemi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AuthService _authService;
+        private readonly TelegramService _telegramService;
+        private readonly GunlukBildirimServisi _gunlukBildirim;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(AuthService authService)
+        public AuthController(AuthService authService, TelegramService telegramService, GunlukBildirimServisi gunlukBildirim, IConfiguration configuration)
         {
             _authService = authService;
+            _telegramService = telegramService;
+            _gunlukBildirim = gunlukBildirim;
+            _configuration = configuration;
         }
 
         // POST: api/Auth/kayit
@@ -113,6 +120,74 @@ namespace TarimSistemi.Controllers
                 return BadRequest(new { message = msg });
             return Ok(new { message = msg });
         }
+
+        // GET: api/Auth/telegram/baglama-linki — Deep-link üret (30 dk geçerli)
+        [Authorize]
+        [HttpGet("telegram/baglama-linki")]
+        public async Task<IActionResult> TelegramBaglamaLinki()
+        {
+            if (!_telegramService.Aktif)
+                return BadRequest(new { message = "Telegram botu henüz yapılandırılmamış." });
+
+            var botUsername = _telegramService.BotUsername;
+            if (string.IsNullOrWhiteSpace(botUsername))
+                return BadRequest(new { message = "Telegram:BotUsername yapılandırılmamış. appsettings'i kontrol edin." });
+
+            var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var (ok, token, message) = await _authService.UretTelegramBaglamaTokenu(kullaniciId);
+            if (!ok) return BadRequest(new { message });
+
+            var link = $"https://t.me/{botUsername}?start={token}";
+            return Ok(new { link, message = "Bu link 30 dakika geçerlidir. Açtıktan sonra Telegram'da 'Başlat' butonuna basın." });
+        }
+
+        // PUT: api/Auth/telegram — Telegram chat ID kaydet / kaldır
+        [Authorize]
+        [HttpPut("telegram")]
+        public async Task<IActionResult> TelegramKaydet([FromBody] TelegramDto body)
+        {
+            var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var (ok, message) = await _authService.KaydetTelegramAsync(kullaniciId, body.ChatId);
+            if (!ok)
+                return BadRequest(new { message });
+            return Ok(new { message });
+        }
+
+        // POST: api/Auth/telegram/test-gunluk — Günlük tarım raporunu şimdi gönder
+        [Authorize]
+        [HttpPost("telegram/test-gunluk")]
+        public async Task<IActionResult> TelegramTestGunluk()
+        {
+            var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var (ok, message) = await _gunlukBildirim.TekKullaniciGonder(kullaniciId);
+            if (!ok) return BadRequest(new { message });
+            return Ok(new { message });
+        }
+
+        // POST: api/Auth/telegram/test — Kayıtlı chat ID'ye test mesajı gönder
+        [Authorize]
+        [HttpPost("telegram/test")]
+        public async Task<IActionResult> TelegramTest()
+        {
+            if (!_telegramService.Aktif)
+                return BadRequest(new { message = "Telegram botu henüz yapılandırılmamış. Sistem yöneticisine bildirin." });
+
+            var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var profil = await _authService.GetProfilAsync(kullaniciId);
+
+            if (string.IsNullOrWhiteSpace(profil?.TelegramChatId))
+                return BadRequest(new { message = "Önce Telegram chat ID girip kaydedin." });
+
+            var basarili = await _telegramService.MesajGonderAsync(
+                profil.TelegramChatId,
+                $"✅ <b>Akıllı Tarım Sistemi</b>\n\nMerhaba {System.Net.WebUtility.HtmlEncode(profil.AdSoyad)}! " +
+                "Telegram bildirimleri aktif. Tarlalarınızda kritik risk oluştuğunda buradan haber alacaksınız.");
+
+            if (!basarili)
+                return BadRequest(new { message = "Mesaj gönderilemedi. Chat ID'yi kontrol edin ve botu başlattığınızdan emin olun." });
+
+            return Ok(new { message = "Test mesajı Telegram'a gönderildi!" });
+        }
     }
 
     public class KayitDto
@@ -155,5 +230,10 @@ namespace TarimSistemi.Controllers
     {
         public string Token { get; set; } = "";
         public string YeniSifre { get; set; } = "";
+    }
+
+    public class TelegramDto
+    {
+        public string? ChatId { get; set; }
     }
 }

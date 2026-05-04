@@ -152,167 +152,248 @@
     </div>
 </div>
 
+<div class="row g-4 mt-0">
+    <div class="col-12">
+        <div class="hesap-card">
+            <h2><i class="fab fa-telegram-plane me-2" style="color:#229ED9;"></i>Telegram Bildirimleri</h2>
+            <p class="small text-muted mb-3">
+                Tarlalarınızda <strong>kritik risk</strong> tespit edildiğinde Telegram'dan anında haber alın.
+                Chat ID'nizi girin, kaydedin, sonra test mesajı gönderin.
+            </p>
+            <div class="alert alert-light border small mb-3" style="font-size:0.82rem; line-height:1.6;">
+                <strong>Chat ID nasıl öğrenilir?</strong><br>
+                1. Telegram'da <a href="https://t.me/BotFather" target="_blank">@@BotFather</a>'a gidin → <code>/newbot</code> yazın → bot token'ını alın (sistem yöneticisine verin).<br>
+                2. <a href="https://t.me/userinfobot" target="_blank">@@userinfobot</a>'a mesaj gönderin — size ID numaranızı söyler.<br>
+                3. Botunuzu bir kez <code>/start</code> ile başlatın, ardından aşağıya ID'yi girin.
+            </div>
+            <div id="telegramAlert" class="alert d-none mb-3 small" role="alert"></div>
+            <div class="row g-2 align-items-end">
+                <div class="col-sm-6">
+                    <label class="form-label fw-semibold" for="inpTelegramChatId">Telegram Chat ID</label>
+                    <input type="text" class="form-control" id="inpTelegramChatId"
+                           placeholder="Örnek: 123456789" maxlength="50" />
+                    <div class="form-text">Boş bırakırsanız bildirim kapatılır.</div>
+                </div>
+                <div class="col-sm-auto">
+                    <button class="btn btn-success fw-bold px-4" id="btnTelegramKaydet">
+                        <i class="fas fa-save me-1"></i> Kaydet
+                    </button>
+                </div>
+                <div class="col-sm-auto">
+                    <button class="btn btn-outline-secondary px-3" id="btnTelegramTest">
+                        <i class="fab fa-telegram-plane me-1"></i> Bağlantı Testi
+                    </button>
+                </div>
+                <div class="col-sm-auto">
+                    <button class="btn btn-outline-success px-3" id="btnTelegramGunluk">
+                        <i class="fas fa-sun me-1"></i> Günlük Raporu Gönder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
-<script>
-(function () {
-    const authHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + localStorage.getItem('token')
-    });
+    <script>
+        (function () {
+            const authHeaders = () => ({
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            });
 
-    const alertEl = document.getElementById('hesapAlert');
-    function showAlert(kind, text) {
-        alertEl.className = 'alert alert-' + kind + ' mb-3';
-        alertEl.textContent = text;
-        alertEl.classList.remove('d-none');
-    }
-    function hideAlert() {
-        alertEl.classList.add('d-none');
-    }
-
-    function trDate(d) {
-        if (!d) return '—';
-        try {
-            return new Date(d).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' });
-        } catch { return '—'; }
-    }
-
-    async function profilYukle() {
-        hideAlert();
-        const res = await fetch('/api/Auth/profil', { headers: authHeaders() });
-        if (res.status === 401) {
-            localStorage.removeItem('token');
-            window.location.href = '/Home/Login';
-            return;
-        }
-        if (!res.ok) {
-            showAlert('danger', 'Profil yüklenemedi.');
-            return;
-        }
-        const p = await res.json();
-        document.getElementById('profilYukleniyor').classList.add('d-none');
-        document.getElementById('formProfil').classList.remove('d-none');
-        document.getElementById('roEmail').textContent = p.email || '—';
-        document.getElementById('inpAdSoyad').value = p.adSoyad || '';
-        document.getElementById('inpTelefon').value = p.telefon || '';
-        document.getElementById('roKayit').textContent = trDate(p.kayitTarihi);
-        document.getElementById('roSonGiris').textContent = trDate(p.sonGirisTarihi);
-        var uy = document.getElementById('emailOnayUyari');
-        if (uy) uy.classList.toggle('d-none', p.emailOnayli !== false);
-
-        var so = document.getElementById('sifreOnayBekUyari');
-        var soLine = document.getElementById('sifreOnaySonSatir');
-        var soRes = document.getElementById('sifreOnayYenileSonuc');
-        if (soRes) soRes.textContent = '';
-        if (p.sifreDegisikligiOnayBekliyor) {
-            so.classList.remove('d-none');
-            if (p.sifreOnaySonUtc && soLine) {
-                soLine.textContent = 'Bağlantının son geçerliliği: ' + trDate(p.sifreOnaySonUtc) + ' (yerel saat).';
-                soLine.classList.remove('d-none');
-            } else if (soLine) {
-                soLine.classList.add('d-none');
+            const alertEl = document.getElementById('hesapAlert');
+            function showAlert(kind, text) {
+                alertEl.className = 'alert alert-' + kind + ' mb-3';
+                alertEl.textContent = text;
+                alertEl.classList.remove('d-none');
             }
-        } else if (so) {
-            so.classList.add('d-none');
-        }
-    }
-
-    document.getElementById('formProfil').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        hideAlert();
-        const body = {
-            adSoyad: document.getElementById('inpAdSoyad').value.trim(),
-            telefon: document.getElementById('inpTelefon').value.trim() || null
-        };
-        const res = await fetch('/api/Auth/profil', {
-            method: 'PUT',
-            headers: authHeaders(),
-            body: JSON.stringify(body)
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-            if (data.token) {
-                localStorage.setItem('token', data.token);
-                const ad = body.adSoyad;
-                const un = document.getElementById('userName');
-                const ui = document.getElementById('userInitial');
-                if (un) un.textContent = ad;
-                if (ui) ui.textContent = ad ? ad.charAt(0).toUpperCase() : '?';
+            function hideAlert() {
+                alertEl.classList.add('d-none');
             }
-            showAlert('success', data.message || 'Kaydedildi.');
-        } else {
-            showAlert('danger', data.message || 'Kayıt başarısız.');
-        }
-    });
 
-    document.getElementById('formSifre').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        hideAlert();
-        const y1 = document.getElementById('inpYeniSifre').value;
-        const y2 = document.getElementById('inpYeniSifre2').value;
-        if (y1 !== y2) {
-            showAlert('warning', 'Yeni şifreler eşleşmiyor.');
-            return;
-        }
-        const body = {
-            mevcutSifre: document.getElementById('inpMevcutSifre').value,
-            yeniSifre: y1
-        };
-        const res = await fetch('/api/Auth/sifre-degistir', {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify(body)
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-            showAlert('success', data.message || 'İstek tamamlandı.');
-            document.getElementById('formSifre').reset();
-            await profilYukle();
-        } else {
-            showAlert('danger', data.message || 'Şifre güncellenemedi.');
-        }
-    });
-
-    document.getElementById('btnYenileSifreOnay').addEventListener('click', async function () {
-        hideAlert();
-        var soRes = document.getElementById('sifreOnayYenileSonuc');
-        if (soRes) soRes.textContent = 'Gönderiliyor…';
-        try {
-            var r = await fetch('/api/Auth/sifre-degistir-onay-yenile', { method: 'POST', headers: authHeaders() });
-            var d = await r.json().catch(function () { return {}; });
-            if (soRes) soRes.textContent = d.message || (r.ok ? 'Tamam.' : 'İşlem başarısız.');
-            if (r.ok) await profilYukle();
-            else if (r.status === 401) {
-                localStorage.removeItem('token');
-                window.location.href = '/Home/Login';
+            function trDate(d) {
+                if (!d) return '—';
+                try {
+                    return new Date(d).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' });
+                } catch { return '—'; }
             }
-        } catch {
-            if (soRes) soRes.textContent = 'Bağlantı hatası.';
-        }
-    });
 
-    document.querySelectorAll('[data-pw-toggle]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var wrap = btn.closest('.password-field-wrap');
-            if (!wrap) return;
-            var input = wrap.querySelector('input');
-            var icon = btn.querySelector('i');
-            if (!input || !icon) return;
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.replace('fa-eye', 'fa-eye-slash');
-                btn.setAttribute('aria-label', 'Şifreyi gizle');
-                btn.setAttribute('title', 'Şifreyi gizle');
-            } else {
-                input.type = 'password';
-                icon.classList.replace('fa-eye-slash', 'fa-eye');
-                btn.setAttribute('aria-label', 'Şifreyi göster');
-                btn.setAttribute('title', 'Şifreyi göster');
+            async function profilYukle() {
+                hideAlert();
+                const res = await fetch('/api/Auth/profil', { headers: authHeaders() });
+                if (res.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = '/Home/Login';
+                    return;
+                }
+                if (!res.ok) {
+                    showAlert('danger', 'Profil yüklenemedi.');
+                    return;
+                }
+                const p = await res.json();
+                document.getElementById('profilYukleniyor').classList.add('d-none');
+                document.getElementById('formProfil').classList.remove('d-none');
+                document.getElementById('roEmail').textContent = p.email || '—';
+                document.getElementById('inpAdSoyad').value = p.adSoyad || '';
+                document.getElementById('inpTelefon').value = p.telefon || '';
+                document.getElementById('inpTelegramChatId').value = p.telegramChatId || '';
+                document.getElementById('roKayit').textContent = trDate(p.kayitTarihi);
+                document.getElementById('roSonGiris').textContent = trDate(p.sonGirisTarihi);
+                var uy = document.getElementById('emailOnayUyari');
+                if (uy) uy.classList.toggle('d-none', p.emailOnayli !== false);
+
+                var so = document.getElementById('sifreOnayBekUyari');
+                var soLine = document.getElementById('sifreOnaySonSatir');
+                var soRes = document.getElementById('sifreOnayYenileSonuc');
+                if (soRes) soRes.textContent = '';
+                if (p.sifreDegisikligiOnayBekliyor) {
+                    so.classList.remove('d-none');
+                    if (p.sifreOnaySonUtc && soLine) {
+                        soLine.textContent = 'Bağlantının son geçerliliği: ' + trDate(p.sifreOnaySonUtc) + ' (yerel saat).';
+                        soLine.classList.remove('d-none');
+                    } else if (soLine) {
+                        soLine.classList.add('d-none');
+                    }
+                } else if (so) {
+                    so.classList.add('d-none');
+                }
             }
-        });
-    });
 
-    profilYukle();
-})();
-</script>
+            document.getElementById('formProfil').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                hideAlert();
+                const body = {
+                    adSoyad: document.getElementById('inpAdSoyad').value.trim(),
+                    telefon: document.getElementById('inpTelefon').value.trim() || null
+                };
+                const res = await fetch('/api/Auth/profil', {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    if (data.token) {
+                        localStorage.setItem('token', data.token);
+                        const ad = body.adSoyad;
+                        const un = document.getElementById('userName');
+                        const ui = document.getElementById('userInitial');
+                        if (un) un.textContent = ad;
+                        if (ui) ui.textContent = ad ? ad.charAt(0).toUpperCase() : '?';
+                    }
+                    showAlert('success', data.message || 'Kaydedildi.');
+                } else {
+                    showAlert('danger', data.message || 'Kayıt başarısız.');
+                }
+            });
+
+            document.getElementById('formSifre').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                hideAlert();
+                const y1 = document.getElementById('inpYeniSifre').value;
+                const y2 = document.getElementById('inpYeniSifre2').value;
+                if (y1 !== y2) {
+                    showAlert('warning', 'Yeni şifreler eşleşmiyor.');
+                    return;
+                }
+                const body = {
+                    mevcutSifre: document.getElementById('inpMevcutSifre').value,
+                    yeniSifre: y1
+                };
+                const res = await fetch('/api/Auth/sifre-degistir', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    showAlert('success', data.message || 'İstek tamamlandı.');
+                    document.getElementById('formSifre').reset();
+                    await profilYukle();
+                } else {
+                    showAlert('danger', data.message || 'Şifre güncellenemedi.');
+                }
+            });
+
+            document.getElementById('btnYenileSifreOnay').addEventListener('click', async function () {
+                hideAlert();
+                var soRes = document.getElementById('sifreOnayYenileSonuc');
+                if (soRes) soRes.textContent = 'Gönderiliyor…';
+                try {
+                    var r = await fetch('/api/Auth/sifre-degistir-onay-yenile', { method: 'POST', headers: authHeaders() });
+                    var d = await r.json().catch(function () { return {}; });
+                    if (soRes) soRes.textContent = d.message || (r.ok ? 'Tamam.' : 'İşlem başarısız.');
+                    if (r.ok) await profilYukle();
+                    else if (r.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = '/Home/Login';
+                    }
+                } catch {
+                    if (soRes) soRes.textContent = 'Bağlantı hatası.';
+                }
+            });
+
+            document.querySelectorAll('[data-pw-toggle]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var wrap = btn.closest('.password-field-wrap');
+                    if (!wrap) return;
+                    var input = wrap.querySelector('input');
+                    var icon = btn.querySelector('i');
+                    if (!input || !icon) return;
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.replace('fa-eye', 'fa-eye-slash');
+                        btn.setAttribute('aria-label', 'Şifreyi gizle');
+                        btn.setAttribute('title', 'Şifreyi gizle');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.replace('fa-eye-slash', 'fa-eye');
+                        btn.setAttribute('aria-label', 'Şifreyi göster');
+                        btn.setAttribute('title', 'Şifreyi göster');
+                    }
+                });
+            });
+
+            // --- Telegram ---
+            const tlAlert = document.getElementById('telegramAlert');
+            function showTlAlert(kind, text) {
+                tlAlert.className = 'alert alert-' + kind + ' mb-3 small';
+                tlAlert.textContent = text;
+                tlAlert.classList.remove('d-none');
+            }
+
+            document.getElementById('btnTelegramKaydet').addEventListener('click', async function () {
+                const chatId = document.getElementById('inpTelegramChatId').value.trim();
+                const res = await fetch('/api/Auth/telegram', {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ chatId: chatId || null })
+                });
+                const data = await res.json().catch(() => ({}));
+                showTlAlert(res.ok ? 'success' : 'danger', data.message || (res.ok ? 'Kaydedildi.' : 'Hata.'));
+            });
+
+            document.getElementById('btnTelegramTest').addEventListener('click', async function () {
+                showTlAlert('secondary', 'Gönderiliyor…');
+                const res = await fetch('/api/Auth/telegram/test', { method: 'POST', headers: authHeaders() });
+                const data = await res.json().catch(() => ({}));
+                showTlAlert(res.ok ? 'success' : 'danger', data.message || (res.ok ? 'Mesaj gönderildi.' : 'Hata.'));
+            });
+
+            document.getElementById('btnTelegramGunluk').addEventListener('click', async function () {
+                showTlAlert('secondary', 'Günlük rapor hazırlanıyor, hava verisi alınıyor…');
+                this.disabled = true;
+                try {
+                    const res = await fetch('/api/Auth/telegram/test-gunluk', { method: 'POST', headers: authHeaders() });
+                    const data = await res.json().catch(() => ({}));
+                    showTlAlert(res.ok ? 'success' : 'danger', data.message || (res.ok ? 'Rapor gönderildi.' : 'Hata.'));
+                } finally {
+                    this.disabled = false;
+                }
+            });
+
+            profilYukle();
+        })();
+    </script>
 }
