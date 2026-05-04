@@ -152,41 +152,76 @@
     </div>
 </div>
 
-<div class="row g-4 mt-0">
+<div class="row g-4 mt-0" id="telegram">
     <div class="col-12">
         <div class="hesap-card">
-            <h2><i class="fab fa-telegram-plane me-2" style="color:#229ED9;"></i>Telegram Bildirimleri</h2>
-            <p class="small text-muted mb-3">
-                Tarlalarınızda <strong>kritik risk</strong> tespit edildiğinde Telegram'dan anında haber alın.
-                Chat ID'nizi girin, kaydedin, sonra test mesajı gönderin.
-            </p>
-            <div class="alert alert-light border small mb-3" style="font-size:0.82rem; line-height:1.6;">
-                <strong>Chat ID nasıl öğrenilir?</strong><br>
-                1. Telegram'da <a href="https://t.me/BotFather" target="_blank">@@BotFather</a>'a gidin → <code>/newbot</code> yazın → bot token'ını alın (sistem yöneticisine verin).<br>
-                2. <a href="https://t.me/userinfobot" target="_blank">@@userinfobot</a>'a mesaj gönderin — size ID numaranızı söyler.<br>
-                3. Botunuzu bir kez <code>/start</code> ile başlatın, ardından aşağıya ID'yi girin.
+            <div class="d-flex align-items-center gap-2 mb-3" style="border-bottom:2px solid #e8f5e9; padding-bottom:12px;">
+                <h2 class="mb-0" style="border:none; padding:0; font-size:1.02rem; font-weight:800; color:#2e4a38;">
+                    <i class="fab fa-telegram-plane me-2" style="color:#229ED9;"></i>Telegram Bildirimleri
+                </h2>
+                <span id="tgBagliBadge" class="badge bg-success d-none" style="font-size:0.78rem;">Bağlı ✓</span>
+                <span id="tgBagliDegilBadge" class="badge bg-secondary" style="font-size:0.78rem;">Bağlı değil</span>
             </div>
+
             <div id="telegramAlert" class="alert d-none mb-3 small" role="alert"></div>
-            <div class="row g-2 align-items-end">
-                <div class="col-sm-6">
-                    <label class="form-label fw-semibold" for="inpTelegramChatId">Telegram Chat ID</label>
-                    <input type="text" class="form-control" id="inpTelegramChatId"
-                           placeholder="Örnek: 123456789" maxlength="50" />
-                    <div class="form-text">Boş bırakırsanız bildirim kapatılır.</div>
+
+            <!-- Bağlı değil -->
+            <div id="tgSeksiyon_Baglanma">
+                <p class="small text-muted mb-3">
+                    Tarlalarınızda kritik risk oluştuğunda Telegram'dan anında haber alın.<br>
+                    <strong>Sadece iki adım:</strong> aşağıdaki butona tıklayın, ardından Telegram'da <strong>Başlat</strong> butonuna basın.
+                </p>
+                <button class="btn btn-primary fw-bold" id="btnTelegramBagla">
+                    <i class="fab fa-telegram-plane me-1"></i> Telegram'ı Bağla
+                </button>
+                <div id="tgLinkAlani" class="alert alert-info small mt-3 d-none" style="border-radius:10px;">
+                    <div class="mb-2"><strong>Link hazır!</strong> Telegram açılacak — <strong>Başlat</strong> butonuna basın, hepsi bu.</div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <a id="tgDeepLink" href="#" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fab fa-telegram-plane me-1"></i> Telegram'da Aç
+                        </a>
+                        <button class="btn btn-sm btn-outline-success" id="btnTgBaglandiYenile">
+                            <i class="fas fa-check me-1"></i> Bağlandım
+                        </button>
+                    </div>
+                    <div class="text-muted mt-2" style="font-size:0.78rem;">Bu link 30 dakika geçerlidir.</div>
                 </div>
-                <div class="col-sm-auto">
-                    <button class="btn btn-success fw-bold px-4" id="btnTelegramKaydet">
-                        <i class="fas fa-save me-1"></i> Kaydet
-                    </button>
-                </div>
-                <div class="col-sm-auto">
+                <details class="mt-3">
+                    <summary class="small text-muted" style="cursor:pointer; user-select:none;">
+                        Manuel Chat ID girişi <span class="text-muted">(ileri düzey)</span>
+                    </summary>
+                    <div class="row g-2 align-items-end mt-2">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold small" for="inpTelegramChatId">Chat ID</label>
+                            <input type="text" class="form-control" id="inpTelegramChatId"
+                                   placeholder="Örnek: 123456789" maxlength="50" />
+                            <div class="form-text">
+                                ID'nizi öğrenmek için <a href="https://t.me/userinfobot" target="_blank">@@userinfobot</a>'a mesaj gönderin.
+                            </div>
+                        </div>
+                        <div class="col-sm-auto">
+                            <button class="btn btn-outline-success fw-bold px-4" id="btnTelegramKaydet">
+                                <i class="fas fa-save me-1"></i> Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Bağlı -->
+            <div id="tgSeksiyon_Bagli" class="d-none">
+                <p class="small text-muted mb-3">
+                    Bildirimler aktif. Tarlalarınızda kritik risk oluştuğunda Telegram'dan haber alırsınız.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
                     <button class="btn btn-outline-secondary px-3" id="btnTelegramTest">
-                        <i class="fab fa-telegram-plane me-1"></i> Bağlantı Testi
+                        <i class="fab fa-telegram-plane me-1"></i> Test mesajı gönder
                     </button>
-                </div>
-                <div class="col-sm-auto">
                     <button class="btn btn-outline-success px-3" id="btnTelegramGunluk">
-                        <i class="fas fa-sun me-1"></i> Günlük Raporu Gönder
+                        <i class="fas fa-sun me-1"></i> Günlük raporu şimdi al
+                    </button>
+                    <button class="btn btn-outline-danger px-3 ms-auto" id="btnTelegramKes">
+                        <i class="fas fa-unlink me-1"></i> Bağlantıyı kes
                     </button>
                 </div>
             </div>
@@ -238,6 +273,7 @@
                 document.getElementById('inpAdSoyad').value = p.adSoyad || '';
                 document.getElementById('inpTelefon').value = p.telefon || '';
                 document.getElementById('inpTelegramChatId').value = p.telegramChatId || '';
+                tgDurumGuncelle(p.telegramChatId);
                 document.getElementById('roKayit').textContent = trDate(p.kayitTarihi);
                 document.getElementById('roSonGiris').textContent = trDate(p.sonGirisTarihi);
                 var uy = document.getElementById('emailOnayUyari');
@@ -363,6 +399,38 @@
                 tlAlert.classList.remove('d-none');
             }
 
+            function tgDurumGuncelle(chatId) {
+                const bagli = !!chatId;
+                document.getElementById('tgBagliBadge').classList.toggle('d-none', !bagli);
+                document.getElementById('tgBagliDegilBadge').classList.toggle('d-none', bagli);
+                document.getElementById('tgSeksiyon_Baglanma').classList.toggle('d-none', bagli);
+                document.getElementById('tgSeksiyon_Bagli').classList.toggle('d-none', !bagli);
+                if (!bagli) document.getElementById('tgLinkAlani').classList.add('d-none');
+            }
+
+            document.getElementById('btnTelegramBagla').addEventListener('click', async function () {
+                this.disabled = true;
+                const orijinal = this.innerHTML;
+                this.innerHTML = 'Link hazırlanıyor…';
+                try {
+                    const res = await fetch('/api/Auth/telegram/baglama-linki', { headers: authHeaders() });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.link) {
+                        document.getElementById('tgDeepLink').href = data.link;
+                        document.getElementById('tgLinkAlani').classList.remove('d-none');
+                    } else {
+                        showTlAlert('danger', data.message || 'Link oluşturulamadı.');
+                    }
+                } finally {
+                    this.disabled = false;
+                    this.innerHTML = orijinal;
+                }
+            });
+
+            document.getElementById('btnTgBaglandiYenile').addEventListener('click', async function () {
+                await profilYukle();
+            });
+
             document.getElementById('btnTelegramKaydet').addEventListener('click', async function () {
                 const chatId = document.getElementById('inpTelegramChatId').value.trim();
                 const res = await fetch('/api/Auth/telegram', {
@@ -372,6 +440,7 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 showTlAlert(res.ok ? 'success' : 'danger', data.message || (res.ok ? 'Kaydedildi.' : 'Hata.'));
+                if (res.ok) await profilYukle();
             });
 
             document.getElementById('btnTelegramTest').addEventListener('click', async function () {
@@ -382,7 +451,7 @@
             });
 
             document.getElementById('btnTelegramGunluk').addEventListener('click', async function () {
-                showTlAlert('secondary', 'Günlük rapor hazırlanıyor, hava verisi alınıyor…');
+                showTlAlert('secondary', 'Günlük rapor hazırlanıyor…');
                 this.disabled = true;
                 try {
                     const res = await fetch('/api/Auth/telegram/test-gunluk', { method: 'POST', headers: authHeaders() });
@@ -393,7 +462,26 @@
                 }
             });
 
+            document.getElementById('btnTelegramKes').addEventListener('click', async function () {
+                if (!confirm('Telegram bağlantısını kesmek istediğinize emin misiniz?')) return;
+                const res = await fetch('/api/Auth/telegram', {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ chatId: null })
+                });
+                const data = await res.json().catch(() => ({}));
+                showTlAlert(res.ok ? 'success' : 'danger', data.message || (res.ok ? 'Bağlantı kesildi.' : 'Hata.'));
+                if (res.ok) await profilYukle();
+            });
+
             profilYukle();
+
+            if (window.location.hash === '#telegram') {
+                setTimeout(function () {
+                    var el = document.getElementById('telegram');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+            }
         })();
     </script>
 }

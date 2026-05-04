@@ -371,6 +371,13 @@
             <a href="/Home/OneriGecmisi" class="nav-link @(ViewData["ActivePage"]?.ToString() == "oneri" ? "active" : "")">
                 <i class="fas fa-history"></i> Öneri Geçmişi
             </a>
+
+            <div class="nav-section-title">Ayarlar</div>
+            <a href="/Home/Hesabim#telegram" id="navTelegram" class="nav-link @(ViewData["ActivePage"]?.ToString() == "hesap" ? "active" : "")">
+                <i class="fab fa-telegram-plane mt-1" style="color:#229ED9;"></i>
+                <span>Bildirimler<small class="d-block" style="font-size:0.68rem;">Telegram ayarları</small></span>
+            </a>
+            
         </nav>
 
         <div class="sidebar-footer">
@@ -491,6 +498,24 @@
             }
             kontrol();
             setInterval(kontrol, 30000);
+        })();
+
+        (function hesapHashActive() {
+            function update() {
+                var navTg = document.getElementById('navTelegram');
+                var navHs = document.getElementById('navHesap');
+                if (!navTg || !navHs) return;
+                if (location.pathname.toLowerCase().indexOf('hesabim') < 0) return;
+                if (location.hash === '#telegram') {
+                    navTg.classList.add('active');
+                    navHs.classList.remove('active');
+                } else {
+                    navHs.classList.add('active');
+                    navTg.classList.remove('active');
+                }
+            }
+            window.addEventListener('hashchange', update);
+            window.addEventListener('DOMContentLoaded', update);
         })();
 
         (function sidebarDashboardHash() {

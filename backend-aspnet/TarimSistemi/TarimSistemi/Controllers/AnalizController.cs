@@ -89,14 +89,15 @@ namespace TarimSistemi.Controllers
                 if (!string.IsNullOrWhiteSpace(kullanici?.TelegramChatId))
                 {
                     string emoji = mlSonuc.RiskTipi == "Kritik" ? "⛔" : "⚠️";
-                    string baslik = mlSonuc.AnomaliBulundu ? "Anormal hava koşulu tespit edildi!" : "Kritik risk uyarısı!";
-                    string tarla = KonumEtiketi(lokasyon);
+                    string baslik = mlSonuc.AnomaliBulundu ? "Anormal hava!" : "Kritik risk!";
+                    string havaSatiri = BildirimHavaSatiri(hava);
+                    string kisaTavsiye = KisaBildirimTavsiyesi(mlSonuc.RiskTipi, mlSonuc.AnomaliBulundu, hava, urun);
                     string bildirim =
                         $"{emoji} <b>Akıllı Tarım — {baslik}</b>\n\n" +
-                        $"🌾 Ürün: {urun.UrunAdi}\n" +
-                        $"📍 Tarla: {tarla}\n" +
-                        $"📊 Risk skoru: %{(int)Math.Round(mlSonuc.RiskSkoru * 100)}\n\n" +
-                        $"<b>Ne yapmalısınız?</b>\n{mlSonuc.TavsiyeMetni.Split('\n')[0]}";
+                        $"🌾 {urun.UrunAdi} · {KonumEtiketi(lokasyon)}\n" +
+                        (havaSatiri.Length > 0 ? havaSatiri + "\n" : "") +
+                        $"📊 Risk: <b>{mlSonuc.RiskTipi}</b> (%{(int)Math.Round(mlSonuc.RiskSkoru * 100)})\n\n" +
+                        kisaTavsiye;
 
                     _ = _telegramService.MesajGonderAsync(kullanici.TelegramChatId, bildirim);
                 }
@@ -364,6 +365,43 @@ namespace TarimSistemi.Controllers
             string.IsNullOrWhiteSpace(l.Ilce)
                 ? l.Sehir
                 : $"{l.Ilce}, {l.Sehir}";
+
+        private static string BildirimHavaSatiri(HavaVerisi h)
+        {
+            var p = new List<string>();
+            if (h.SicaklikMin.HasValue && h.SicaklikMax.HasValue)
+                p.Add($"🌡 {Formatta(h.SicaklikMin.Value)}–{Formatta(h.SicaklikMax.Value)}°C");
+            else if (h.SicaklikMax.HasValue)
+                p.Add($"🌡 {Formatta(h.SicaklikMax.Value)}°C");
+            if (h.Nem.HasValue)
+                p.Add($"💧 %{Formatta(h.Nem.Value)}");
+            if ((h.Yagis ?? 0) > 0)
+                p.Add($"🌧 {Formatta(h.Yagis!.Value)} mm");
+            return string.Join("  ", p);
+        }
+
+        private static string KisaBildirimTavsiyesi(string riskTipi, bool anomali, HavaVerisi hava, UrunBilgisi urun)
+        {
+            decimal sicMin = hava.SicaklikMin ?? 10;
+            decimal sicMax = hava.SicaklikMax ?? 20;
+            decimal yagis = hava.Yagis ?? 0;
+            decimal ruzgar = hava.RuzgarHizi ?? 0;
+            string ad = urun.UrunAdi;
+
+            if (riskTipi == "Kritik")
+            {
+                if (sicMin < 0) return $"❄️ Don tehlikesi ({Formatta(sicMin)}°C)! {ad} bitkilerini örtün, sabah erken kontrol edin.";
+                if (sicMax > 38) return $"🌡 Kavurucu sıcak ({Formatta(sicMax)}°C). Öğle saatlerinde tarlada çalışmayın, sulamayı artırın.";
+                if (yagis > 30) return $"🌧 Yoğun yağış ({Formatta(yagis)} mm). Tarlaya makineyle girmeyin.";
+                if (ruzgar > 60) return $"💨 Kuvvetli rüzgar ({Formatta(ruzgar)} km/s). İlaçlama ve gübre uygulaması yapmayın.";
+                return $"⛔ Bugün kritik koşullar — ekim, ilaçlama ve makine işlerini erteleyin.";
+            }
+
+            if (anomali && yagis >= 5) return $"🌧 Olağandışı yağış ({Formatta(yagis)} mm). {ad} için sulamayı durdurun, tarlayı gözlemleyin.";
+            if (anomali) return $"🔬 Olağandışı hava koşulu — {ad} tarlasını yakından izleyin.";
+            if (yagis >= 10) return $"🌧 Yoğun yağış ({Formatta(yagis)} mm). Sulama yapmayın, drenajı kontrol edin.";
+            return "Tarlayı gözlemleyin; hava netleşince karar verin.";
+        }
 
         /// <summary>
         /// 5 günlük yağış tahmini ve ürün tipine göre sulama yönlendirmesi (eğitim projesi — sahada toprak nemi ile doğrulanmalı).
