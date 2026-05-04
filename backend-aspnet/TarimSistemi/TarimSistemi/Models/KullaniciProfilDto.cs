@@ -15,5 +15,7 @@ namespace TarimSistemi.Models
 
         /// <summary>Onay bağlantısının son geçerlilik zamanı (UTC).</summary>
         public DateTime? SifreOnaySonUtc { get; set; }
+
+        public string? TelegramChatId { get; set; }
     }
 }

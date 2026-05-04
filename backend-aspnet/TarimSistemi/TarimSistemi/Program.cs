@@ -11,7 +11,7 @@ namespace TarimSistemi
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +61,9 @@ namespace TarimSistemi
                     client.BaseAddress = new Uri(baseUrl);
                 client.Timeout = TimeSpan.FromSeconds(10);
             });
+            builder.Services.AddHttpClient<TelegramService>();
+            builder.Services.AddSingleton<GunlukBildirimServisi>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<GunlukBildirimServisi>());
 
             // JWT Authentication
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -108,6 +111,19 @@ namespace TarimSistemi
             {
                 var db = scope.ServiceProvider.GetRequiredService<TarimDbContext>();
                 DbInitializer.SeedUrunler(db);
+            }
+
+            // Telegram webhook kaydı (yalnızca BotToken ve PublicBaseUrl doluysa)
+            var botToken = app.Configuration["Telegram:BotToken"];
+            var publicBaseUrl = (app.Configuration["Email:PublicBaseUrl"] ?? "").TrimEnd('/');
+            if (!string.IsNullOrWhiteSpace(botToken) && !string.IsNullOrWhiteSpace(publicBaseUrl)
+                && !publicBaseUrl.Contains("localhost"))
+            {
+                using var scope = app.Services.CreateScope();
+                var telegram = scope.ServiceProvider.GetRequiredService<TelegramService>();
+                var webhookUrl = $"{publicBaseUrl}/api/telegram/webhook";
+                var secretToken = app.Configuration["Telegram:WebhookSecretToken"];
+                await telegram.WebhookKaydetAsync(webhookUrl, secretToken);
             }
 
             if (!app.Environment.IsDevelopment())
