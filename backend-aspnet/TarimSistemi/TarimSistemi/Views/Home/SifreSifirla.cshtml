@@ -1,8 +1,6 @@
 @{
     Layout = null;
     ViewData["Title"] = "Şifre sıfırlama";
-    var resetToken = ViewBag.ResetToken as string;
-    var hasToken = !string.IsNullOrWhiteSpace(resetToken);
 }
 <!DOCTYPE html>
 <html lang="tr">
@@ -36,9 +34,10 @@
         .form-control:focus { border-color: #4caf50; box-shadow: 0 0 0 3px rgba(76,175,80,0.15); }
         .btn-auth {
             background: linear-gradient(135deg, #2e7d32, #4caf50);
-            border: none; border-radius: 8px; padding: 11px; font-weight: 600; color: white; width: 100%;
+            border: none; border-radius: 8px; padding: 11px; font-weight: 600;
+            font-size: 0.95rem; color: white; width: 100%; transition: all 0.2s;
         }
-        .btn-auth:hover { color: white; opacity: 0.95; }
+        .btn-auth:hover { color: white; transform: translateY(-1px); box-shadow: 0 5px 15px rgba(76,175,80,0.4); }
         .input-icon-wrap { position: relative; }
         .input-icon-wrap i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #bbb; font-size: 0.85rem; z-index: 2; }
         .input-icon-wrap .form-control { padding-left: 36px; }
@@ -52,47 +51,10 @@
 </head>
 <body>
     <div class="auth-card">
-        @if (hasToken)
-        {
-            <h2><i class="fas fa-key text-success me-2"></i>Yeni şifre</h2>
-            <p class="subtitle">E-postanızdaki bağlantıyla geldiniz. Yeni şifrenizi belirleyin (en az 6 karakter).</p>
-            <div class="alert alert-light border small py-2 mb-3">
-                Bağlantı süresi dolduysa veya maildeki linke hiç tıklamadıysanız <a href="/Home/SifreSifirla" class="text-success fw-semibold text-decoration-none">Şifremi unuttum</a> sayfasından aynı e-posta ile yeni istek gönderin.
-            </div>
-            <div id="msgSifir" class="alert d-none py-2 small" role="alert"></div>
-            <form id="formSifir">
-                <input type="hidden" id="resetToken" value="@resetToken" />
-                <div class="mb-3">
-                    <label class="form-label" for="yeniSifre">Yeni şifre</label>
-                    <div class="input-icon-wrap input-password-wrap">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" class="form-control" id="yeniSifre" required minlength="6" autocomplete="new-password" />
-                        <button type="button" class="btn-toggle-sifre" aria-label="Şifreyi göster"><i class="fas fa-eye"></i></button>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" for="yeniSifre2">Yeni şifre (tekrar)</label>
-                    <div class="input-icon-wrap input-password-wrap">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" class="form-control" id="yeniSifre2" required minlength="6" autocomplete="new-password" />
-                        <button type="button" class="btn-toggle-sifre" aria-label="Şifreyi göster"><i class="fas fa-eye"></i></button>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-auth mb-2" id="btnSifirKaydet">Şifreyi kaydet</button>
-            </form>
-        }
-        else
-        {
+        <!-- Adım 1: E-posta -->
+        <div id="adim1">
             <h2><i class="fas fa-unlock-alt text-success me-2"></i>Şifremi unuttum</h2>
-            <p class="subtitle">Kayıtlı e-posta adresinizi girin; size şifre sıfırlama bağlantısı gönderelim.</p>
-            <div class="alert alert-light border small py-2 mb-3">
-                <strong>Nasıl ilerler?</strong>
-                <ol class="mb-0 ps-3 mt-1 small">
-                    <li>E-postanıza <strong>şifre sıfırlama</strong> mesajı gelir.</li>
-                    <li>İçindeki bağlantıya tıklayıp bu sitede yeni şifrenizi yazarsınız.</li>
-                    <li>Görmezseniz <strong>spam</strong> klasörüne bakın; birkaç dakika sonra aynı adresle tekrar istek gönderebilirsiniz.</li>
-                </ol>
-            </div>
+            <p class="subtitle">Kayıtlı e-posta adresinizi girin; 6 haneli sıfırlama kodu gönderelim.</p>
             <div id="msgIstek" class="alert d-none py-2 small" role="alert"></div>
             <form id="formIstek">
                 <div class="mb-3">
@@ -102,15 +64,234 @@
                         <input type="email" class="form-control" id="eposta" placeholder="ornek@mail.com" required autocomplete="email" />
                     </div>
                 </div>
-                <button type="submit" class="btn btn-auth mb-2" id="btnIstekGonder">Bağlantı gönder</button>
+                <button type="submit" class="btn btn-auth mb-2" id="btnIstekGonder">
+                    <i class="fas fa-paper-plane me-2"></i>Kod gönder
+                </button>
             </form>
-        }
+        </div>
+
+        <!-- Adım 2: Kod + yeni şifre (kayıt sonrası gösterilir) -->
+        <div id="adim2" class="d-none">
+            <h2><i class="fas fa-key text-success me-2"></i>Yeni şifre</h2>
+            <p class="subtitle">E-postanıza gönderilen 6 haneli kodu ve yeni şifrenizi girin.</p>
+            <div class="alert alert-success py-2 mb-3 small">
+                <strong>Kod gönderildi!</strong> Gelen kutusu ve spam klasörünü kontrol edin.
+            </div>
+            <div class="text-center mb-3">
+                <span id="sayacBadge" class="badge bg-success px-3 py-2" style="font-size:0.85rem;">
+                    <i class="fas fa-clock me-1"></i>Kodun geçerlilik süresi: <span id="sayacSure">1:00</span>
+                </span>
+            </div>
+            <div id="msgSifir" class="alert d-none py-2 small" role="alert"></div>
+            <form id="formSifir">
+                <div class="mb-3">
+                    <label class="form-label">Doğrulama Kodu</label>
+                    <input type="text" class="form-control text-center fw-bold"
+                           id="sifirlamaKodu" maxlength="6" placeholder="_ _ _ _ _ _"
+                           style="font-size:1.6rem;letter-spacing:8px;" autocomplete="one-time-code" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Yeni şifre</label>
+                    <div class="input-icon-wrap input-password-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" class="form-control" id="yeniSifre" placeholder="Min. 6 karakter" required minlength="6" autocomplete="new-password" />
+                        <button type="button" class="btn-toggle-sifre" aria-label="Şifreyi göster"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Yeni şifre (tekrar)</label>
+                    <div class="input-icon-wrap input-password-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" class="form-control" id="yeniSifre2" placeholder="Tekrar girin" required minlength="6" autocomplete="new-password" />
+                        <button type="button" class="btn-toggle-sifre" aria-label="Şifreyi göster"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-auth mb-2" id="btnSifirKaydet">
+                    <i class="fas fa-check-circle me-2"></i>Şifreyi kaydet
+                </button>
+            </form>
+            <div class="text-center mt-2" id="yenileWrap">
+                <button type="button" class="btn btn-link btn-sm text-muted p-0" id="btnKodYenile">
+                    Kod gelmedi veya süresi doldu, tekrar gönder
+                </button>
+                <span id="yenileSonuc" class="small ms-2 text-muted"></span>
+            </div>
+        </div>
+
         <div class="text-center mt-3">
-            <a href="/Home/Login" class="small text-success fw-semibold text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Girişe dön</a>
+            <a href="/Home/Login" class="small text-success fw-semibold text-decoration-none">
+                <i class="fas fa-arrow-left me-1"></i>Girişe dön
+            </a>
         </div>
     </div>
 
     <script>
+        var _sifirlamaEmail = '';
+        var _sayacInterval = null;
+
+        function baslatSayac() {
+            clearInterval(_sayacInterval);
+            var badge = document.getElementById('sayacBadge');
+            var yenileBtn = document.getElementById('btnKodYenile');
+            var yenileWrap = document.getElementById('yenileWrap');
+            var kalan = 60;
+
+            function guncelleBadge() {
+                var sn = kalan % 60;
+                var sure = document.getElementById('sayacSure');
+                if (sure) sure.textContent = Math.floor(kalan / 60) + ':' + (sn < 10 ? '0' + sn : sn);
+                if (kalan <= 10) {
+                    badge.className = 'badge bg-danger px-3 py-2';
+                } else if (kalan <= 30) {
+                    badge.className = 'badge bg-warning text-dark px-3 py-2';
+                } else {
+                    badge.className = 'badge bg-success px-3 py-2';
+                }
+            }
+
+            badge.className = 'badge bg-success px-3 py-2';
+            badge.innerHTML = '<i class="fas fa-clock me-1"></i>Kodun geçerlilik süresi: <span id="sayacSure">1:00</span>';
+
+            _sayacInterval = setInterval(function () {
+                kalan--;
+                if (kalan <= 0) {
+                    clearInterval(_sayacInterval);
+                    badge.className = 'badge bg-danger px-3 py-2';
+                    badge.innerHTML = '<i class="fas fa-times-circle me-1"></i>Kod süresi doldu! Yeni kod isteyin.';
+                    yenileBtn.classList.replace('text-muted', 'text-danger');
+                    yenileWrap.style.fontWeight = '600';
+                } else {
+                    guncelleBadge();
+                }
+            }, 1000);
+        }
+
+        document.getElementById('formIstek').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var el = document.getElementById('msgIstek');
+            var btn = document.getElementById('btnIstekGonder');
+            el.classList.add('d-none');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gönderiliyor...';
+
+            _sifirlamaEmail = document.getElementById('eposta').value.trim();
+
+            try {
+                var r = await fetch('/api/Auth/sifremi-unuttum', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: _sifirlamaEmail })
+                });
+                var d = await r.json();
+                if (r.ok) {
+                    document.getElementById('adim1').classList.add('d-none');
+                    document.getElementById('adim2').classList.remove('d-none');
+                    document.getElementById('sifirlamaKodu').focus();
+                    baslatSayac();
+                } else {
+                    el.className = 'alert alert-danger py-2 small';
+                    el.textContent = d.message || 'İstek gönderilemedi.';
+                    el.classList.remove('d-none');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Kod gönder';
+                }
+            } catch {
+                el.className = 'alert alert-danger py-2 small';
+                el.textContent = 'Sunucuya bağlanılamadı.';
+                el.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Kod gönder';
+            }
+        });
+
+        document.getElementById('sifirlamaKodu').addEventListener('input', function () {
+            this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        });
+
+        document.getElementById('formSifir').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var el = document.getElementById('msgSifir');
+            var btn = document.getElementById('btnSifirKaydet');
+            var kod = document.getElementById('sifirlamaKodu').value.trim();
+            var a = document.getElementById('yeniSifre').value;
+            var b = document.getElementById('yeniSifre2').value;
+            el.classList.add('d-none');
+
+            if (kod.length !== 6) {
+                el.className = 'alert alert-warning py-2 small';
+                el.textContent = '6 haneli kodu eksiksiz girin.';
+                el.classList.remove('d-none');
+                return;
+            }
+            if (a !== b) {
+                el.className = 'alert alert-warning py-2 small';
+                el.textContent = 'Şifreler eşleşmiyor.';
+                el.classList.remove('d-none');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Kaydediliyor...';
+
+            try {
+                var r = await fetch('/api/Auth/sifre-sifirla', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: _sifirlamaEmail, kod: kod, yeniSifre: a })
+                });
+                var d = await r.json();
+                if (r.ok) {
+                    el.className = 'alert alert-success py-2 small';
+                    el.textContent = d.message || 'Şifreniz güncellendi. Yönlendiriliyorsunuz...';
+                    el.classList.remove('d-none');
+                    document.getElementById('formSifir').classList.add('d-none');
+                    document.getElementById('yenileWrap').classList.add('d-none');
+                    setTimeout(function () { window.location.href = '/Home/Login'; }, 1800);
+                } else {
+                    el.className = 'alert alert-danger py-2 small';
+                    el.textContent = (d.message || 'İşlem başarısız.') + ' Yeni kod için aşağıdaki butona tıklayın.';
+                    el.classList.remove('d-none');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Şifreyi kaydet';
+                    document.getElementById('yenileWrap').style.fontWeight = '600';
+                    document.getElementById('btnKodYenile').classList.replace('text-muted', 'text-danger');
+                }
+            } catch {
+                el.className = 'alert alert-danger py-2 small';
+                el.textContent = 'Sunucuya bağlanılamadı.';
+                el.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Şifreyi kaydet';
+            }
+        });
+
+        document.getElementById('btnKodYenile').addEventListener('click', async function () {
+            var sonuc = document.getElementById('yenileSonuc');
+            var yenileBtn = document.getElementById('btnKodYenile');
+            sonuc.textContent = 'Gönderiliyor...';
+            yenileBtn.disabled = true;
+            try {
+                var r = await fetch('/api/Auth/sifremi-unuttum', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: _sifirlamaEmail })
+                });
+                var d = await r.json();
+                sonuc.textContent = d.message || (r.ok ? 'Kod gönderildi.' : 'İşlem başarısız.');
+                if (r.ok) {
+                    yenileBtn.classList.replace('text-danger', 'text-muted');
+                    document.getElementById('yenileWrap').style.fontWeight = '';
+                    document.getElementById('msgSifir').classList.add('d-none');
+                    document.getElementById('sifirlamaKodu').value = '';
+                    document.getElementById('sifirlamaKodu').focus();
+                    baslatSayac();
+                }
+            } catch {
+                sonuc.textContent = 'İstek gönderilemedi.';
+            }
+            yenileBtn.disabled = false;
+        });
+
         document.querySelectorAll('.btn-toggle-sifre').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var wrap = btn.closest('.input-password-wrap');
@@ -120,84 +301,14 @@
                 if (input.type === 'password') {
                     input.type = 'text';
                     icon.classList.replace('fa-eye', 'fa-eye-slash');
+                    btn.setAttribute('aria-label', 'Şifreyi gizle');
                 } else {
                     input.type = 'password';
                     icon.classList.replace('fa-eye-slash', 'fa-eye');
+                    btn.setAttribute('aria-label', 'Şifreyi göster');
                 }
             });
         });
-
-        @if (hasToken)
-        {
-            <text>
-        document.getElementById('formSifir').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            var el = document.getElementById('msgSifir');
-            var a = document.getElementById('yeniSifre').value;
-            var b = document.getElementById('yeniSifre2').value;
-            if (a !== b) {
-                el.className = 'alert alert-warning py-2 small';
-                el.textContent = 'Şifreler eşleşmiyor.';
-                el.classList.remove('d-none');
-                return;
-            }
-            var btn = document.getElementById('btnSifirKaydet');
-            btn.disabled = true;
-            try {
-                var r = await fetch('/api/Auth/sifre-sifirla', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: document.getElementById('resetToken').value, yeniSifre: a })
-                });
-                var d = await r.json();
-                el.className = 'alert py-2 small ' + (r.ok ? 'alert-success' : 'alert-danger');
-                el.textContent = d.message || (r.ok ? 'Tamam.' : 'İşlem başarısız.');
-                el.classList.remove('d-none');
-                if (r.ok) {
-                    document.getElementById('formSifir').classList.add('d-none');
-                    setTimeout(function () { window.location.href = '/Home/Login'; }, 2000);
-                } else {
-                    btn.disabled = false;
-                }
-            } catch {
-                el.className = 'alert alert-danger py-2 small';
-                el.textContent = 'Sunucuya bağlanılamadı.';
-                el.classList.remove('d-none');
-                btn.disabled = false;
-            }
-        });
-            </text>
-        }
-        else
-        {
-            <text>
-        document.getElementById('formIstek').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            var el = document.getElementById('msgIstek');
-            var btn = document.getElementById('btnIstekGonder');
-            btn.disabled = true;
-            try {
-                var r = await fetch('/api/Auth/sifremi-unuttum', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: document.getElementById('eposta').value.trim() })
-                });
-                var d = await r.json();
-                el.className = 'alert alert-success py-2 small';
-                el.innerHTML = '<strong>' + (d.message || 'İstek alındı.') + '</strong>'
-                    + '<ul class="mb-0 mt-2 ps-3 small"><li>Gelen kutusu ve <strong>spam</strong> klasörünü kontrol edin.</li>'
-                    + '<li>Mail birkaç dakika gecikebilir.</li>'
-                    + '<li>Görmediyseniz aşağıdaki forma aynı e-postayı yazıp tekrar gönderebilirsiniz.</li></ul>';
-                el.classList.remove('d-none');
-            } catch {
-                el.className = 'alert alert-danger py-2 small';
-                el.textContent = 'Sunucuya bağlanılamadı.';
-                el.classList.remove('d-none');
-            }
-            btn.disabled = false;
-        });
-            </text>
-        }
     </script>
 </body>
 </html>

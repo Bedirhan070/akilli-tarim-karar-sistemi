@@ -51,14 +51,20 @@
     td { vertical-align: middle; }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h5 class="mb-1" style="font-weight:700; color:#2e7d32;">Öneri Geçmişi</h5>
         <small class="text-muted">Geçmiş analizleriniz ve önerileriniz</small>
     </div>
-    <span class="badge" style="background:#e8f5e9;color:#2e7d32;font-size:0.85rem;padding:7px 14px;border-radius:8px;" id="toplamSayi">
-        Yükleniyor...
-    </span>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge" style="background:#e8f5e9;color:#2e7d32;font-size:0.85rem;padding:7px 14px;border-radius:8px;" id="toplamSayi">
+            Yükleniyor...
+        </span>
+        <button id="btnGecmisiTemizle" class="btn btn-sm"
+                style="background:#fff0f0;color:#c62828;border:1px solid #ffcdd2;border-radius:8px;font-size:0.82rem;font-weight:600;padding:6px 14px;">
+            <i class="fas fa-trash-alt me-1"></i>Geçmişi temizle
+        </button>
+    </div>
 </div>
 
 <!-- Filtre -->
@@ -181,8 +187,10 @@
     document.getElementById('btnFiltrele').addEventListener('click', () => {
         let filtred = [...tumOneriler];
 
-        const risk = document.getElementById('filterRisk').value;
-        if (risk) filtred = filtred.filter(o => o.riskTipi === risk);
+        const risk = document.getElementById('filterRisk').value.toLocaleLowerCase('tr');
+        if (risk) filtred = filtred.filter(o =>
+            (o.riskTipi || '').toLocaleLowerCase('tr') === risk
+        );
 
         const bas = document.getElementById('filterBaslangic').value;
         if (bas) filtred = filtred.filter(o => new Date(o.olusturulmaZamani) >= new Date(bas));
@@ -198,6 +206,33 @@
         document.getElementById('filterBaslangic').value = '';
         document.getElementById('filterBitis').value = '';
         renderTablo(tumOneriler);
+    });
+
+    document.getElementById('btnGecmisiTemizle').addEventListener('click', async () => {
+        if (tumOneriler.length === 0) return;
+        if (!confirm('Tüm öneri geçmişiniz kalıcı olarak silinecek. Emin misiniz?')) return;
+
+        const btn = document.getElementById('btnGecmisiTemizle');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Siliniyor...';
+
+        try {
+            const res = await fetch('/api/Oneri/gecmisi-temizle', {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+            });
+            if (res.ok) {
+                tumOneriler = [];
+                renderTablo([]);
+            } else {
+                alert('Silme işlemi başarısız.');
+            }
+        } catch {
+            alert('Sunucuya bağlanılamadı.');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash-alt me-1"></i>Geçmişi temizle';
     });
 
     loadOneriler();

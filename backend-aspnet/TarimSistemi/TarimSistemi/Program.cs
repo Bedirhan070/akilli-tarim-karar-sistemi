@@ -113,15 +113,17 @@ namespace TarimSistemi
                 DbInitializer.SeedUrunler(db);
             }
 
-            // Telegram webhook kaydı (yalnızca BotToken ve PublicBaseUrl doluysa)
+            // Telegram webhook kaydı
+            // Önce Telegram:WebhookBaseUrl'e bak, yoksa Email:PublicBaseUrl'i kullan
             var botToken = app.Configuration["Telegram:BotToken"];
-            var publicBaseUrl = (app.Configuration["Email:PublicBaseUrl"] ?? "").TrimEnd('/');
-            if (!string.IsNullOrWhiteSpace(botToken) && !string.IsNullOrWhiteSpace(publicBaseUrl)
-                && !publicBaseUrl.Contains("localhost"))
+            var webhookBase = (app.Configuration["Telegram:WebhookBaseUrl"]
+                               ?? app.Configuration["Email:PublicBaseUrl"] ?? "").TrimEnd('/');
+            if (!string.IsNullOrWhiteSpace(botToken) && !string.IsNullOrWhiteSpace(webhookBase)
+                && !webhookBase.Contains("localhost"))
             {
                 using var scope = app.Services.CreateScope();
                 var telegram = scope.ServiceProvider.GetRequiredService<TelegramService>();
-                var webhookUrl = $"{publicBaseUrl}/api/telegram/webhook";
+                var webhookUrl = $"{webhookBase}/api/telegram/webhook";
                 var secretToken = app.Configuration["Telegram:WebhookSecretToken"];
                 await telegram.WebhookKaydetAsync(webhookUrl, secretToken);
             }

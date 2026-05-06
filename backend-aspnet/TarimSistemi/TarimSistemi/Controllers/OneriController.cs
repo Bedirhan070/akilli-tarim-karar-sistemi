@@ -26,6 +26,7 @@ namespace TarimSistemi.Controllers
 
             var oneriler = await _context.Oneriler
                 .Include(o => o.Lokasyon)
+                .Include(o => o.UrunBilgisi)
                 .Where(o => o.KullaniciId == kullaniciId)
                 .OrderByDescending(o => o.OlusturulmaZamani)
                 .Select(o => new
@@ -42,6 +43,19 @@ namespace TarimSistemi.Controllers
                 .ToListAsync();
 
             return Ok(oneriler);
+        }
+
+        // DELETE /api/Oneri/gecmisi-temizle — kullanıcının tüm öneri geçmişini sil
+        [HttpDelete("gecmisi-temizle")]
+        public async Task<IActionResult> GecmisiTemizle()
+        {
+            var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var oneriler = await _context.Oneriler
+                .Where(o => o.KullaniciId == kullaniciId)
+                .ToListAsync();
+            _context.Oneriler.RemoveRange(oneriler);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = $"{oneriler.Count} öneri silindi." });
         }
 
         // GET /api/Oneri/son — son 5 öneri (dashboard için)

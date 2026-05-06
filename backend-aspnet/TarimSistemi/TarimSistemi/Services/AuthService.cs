@@ -43,7 +43,10 @@ namespace TarimSistemi.Services
         private static string UretUrlToken() =>
             WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
 
-        public async Task<(bool Success, string Message)> KayitOl(string adSoyad, string email, string sifre, string? telefon)
+        private static string UretKod() =>
+            Random.Shared.Next(100000, 999999).ToString();
+
+        public async Task<(bool Success, bool ZatenKayitli, string Message)> KayitOl(string adSoyad, string email, string sifre, string? telefon)
         {
             var emailNorm = email.Trim().ToLowerInvariant();
             var mevcut = await _context.Kullanicilar.FirstOrDefaultAsync(k => k.Email.ToLower() == emailNorm);
@@ -51,16 +54,16 @@ namespace TarimSistemi.Services
             if (mevcut != null)
             {
                 if (mevcut.EmailOnayli)
-                    return (false, "Bu e-posta adresi zaten kayıtlı.");
+                    return (false, true, "Bu e-posta adresiyle zaten kayıtlı bir hesap var.");
 
                 mevcut.AdSoyad = adSoyad.Trim();
                 mevcut.SifreHash = BCrypt.Net.BCrypt.HashPassword(sifre);
                 mevcut.Telefon = string.IsNullOrWhiteSpace(telefon) ? null : telefon.Trim();
-                mevcut.EmailOnayToken = UretUrlToken();
-                mevcut.EmailOnayTokenSon = DateTime.UtcNow.AddHours(48);
+                mevcut.EmailOnayToken = UretKod();
+                mevcut.EmailOnayTokenSon = DateTime.UtcNow.AddSeconds(60);
                 await _context.SaveChangesAsync();
                 await KayitOnayMailiGonder(mevcut);
-                return (true, "Bu e-posta ile doğrulanmamış bir kayıt vardı; bilgiler güncellendi ve doğrulama bağlantısı e-postanıza gönderildi.");
+                return (true, false, "Bu e-posta ile doğrulanmamış bir kayıt vardı; bilgiler güncellendi ve doğrulama kodu e-postanıza gönderildi.");
             }
 
             var kullanici = new Kullanici
@@ -71,41 +74,49 @@ namespace TarimSistemi.Services
                 Telefon = string.IsNullOrWhiteSpace(telefon) ? null : telefon.Trim(),
                 KayitTarihi = DateTime.Now,
                 EmailOnayli = false,
-                EmailOnayToken = UretUrlToken(),
-                EmailOnayTokenSon = DateTime.UtcNow.AddHours(48)
+                EmailOnayToken = UretKod(),
+                EmailOnayTokenSon = DateTime.UtcNow.AddSeconds(60)
             };
 
             _context.Kullanicilar.Add(kullanici);
             await _context.SaveChangesAsync();
             await KayitOnayMailiGonder(kullanici);
 
-            return (true, "Kayıt oluşturuldu. E-postanıza gönderilen doğrulama bağlantısına tıklayarak hesabınızı aktifleştirin.");
+            return (true, false, "Kayıt oluşturuldu. E-postanıza gönderilen 6 haneli kodu girerek hesabınızı aktifleştirin.");
         }
 
         private async Task KayitOnayMailiGonder(Kullanici k)
         {
-            var link = $"{PublicBaseUrl}/Home/EmailOnay?token={Uri.EscapeDataString(k.EmailOnayToken!)}";
             var html = $@"
-<p>Merhaba {System.Net.WebUtility.HtmlEncode(k.AdSoyad)},</p>
-<p>Akıllı Tarım hesabınızı doğrulamak için aşağıdaki bağlantıya tıklayın:</p>
-<p><a href=""{link}"">{link}</a></p>
-<p>Bu bağlantı 48 saat geçerlidir. Siz istemediyseniz bu e-postayı yok sayabilirsiniz.</p>";
+<div style='font-family:sans-serif;max-width:480px;margin:auto;'>
+<p>Merhaba <strong>{System.Net.WebUtility.HtmlEncode(k.AdSoyad)}</strong>,</p>
+<p>Akıllı Tarım hesabınızı doğrulamak için aşağıdaki kodu kullanın:</p>
+<div style='font-size:2.2rem;font-weight:800;letter-spacing:10px;text-align:center;
+            background:#f0f7f0;border:2px solid #4caf50;border-radius:12px;padding:18px;
+            color:#1b5e20;margin:20px 0;'>{k.EmailOnayToken}</div>
+<p style='font-size:0.9rem;color:#666;'>Bu kod <strong>60 saniye</strong> geçerlidir. Siz istemediyseniz bu e-postayı yok sayabilirsiniz.</p>
+</div>";
 
-            await _emailGonderici.GonderAsync(k.Email, "E-posta doğrulama — Akıllı Tarım", html);
+            await _emailGonderici.GonderAsync(k.Email, "Doğrulama kodunuz — Akıllı Tarım", html);
         }
 
-        public async Task<(bool Ok, string Message)> OnaylaKayitEmailiAsync(string token)
+        public async Task<(bool Ok, string Message)> OnaylaKayitEmailiAsync(string email, string kod)
         {
-            token = Uri.UnescapeDataString(token ?? "").Trim();
-            if (string.IsNullOrEmpty(token))
-                return (false, "Geçersiz doğrulama bağlantısı.");
+            var emailNorm = email.Trim().ToLowerInvariant();
+            kod = kod.Trim();
 
-            var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.EmailOnayToken == token);
-            if (k == null)
-                return (false, "Bağlantı geçersiz veya zaten kullanılmış.");
+            if (string.IsNullOrEmpty(emailNorm) || string.IsNullOrEmpty(kod))
+                return (false, "E-posta veya kod eksik.");
+
+            var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.Email.ToLower() == emailNorm);
+            if (k == null || k.EmailOnayli)
+                return (false, "Hesap bulunamadı veya zaten doğrulanmış.");
+
+            if (k.EmailOnayToken != kod)
+                return (false, "Kod hatalı. Lütfen kontrol edin.");
 
             if (k.EmailOnayTokenSon == null || k.EmailOnayTokenSon < DateTime.UtcNow)
-                return (false, "Doğrulama süresi dolmuş. Giriş sayfasından yeni doğrulama e-postası isteyin.");
+                return (false, "Kodun süresi dolmuş. Yeni kod isteyin.");
 
             k.EmailOnayli = true;
             k.EmailOnayToken = null;
@@ -114,18 +125,20 @@ namespace TarimSistemi.Services
             return (true, "E-posta adresiniz doğrulandı. Şimdi giriş yapabilirsiniz.");
         }
 
-        public async Task<string> EmailDogrulamaYenidenGonder(string email)
+        public async Task<(bool Ok, string Message)> EmailDogrulamaYenidenGonder(string email)
         {
             var emailNorm = email.Trim().ToLowerInvariant();
             var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.Email.ToLower() == emailNorm);
-            if (k == null || k.EmailOnayli)
-                return "İsteğiniz alındı. Bu adrese ait doğrulanmamış hesap varsa yeni bir e-posta gönderilir.";
+            if (k == null)
+                return (false, "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.");
+            if (k.EmailOnayli)
+                return (false, "Bu e-posta zaten doğrulanmış. Giriş yapabilirsiniz.");
 
-            k.EmailOnayToken = UretUrlToken();
-            k.EmailOnayTokenSon = DateTime.UtcNow.AddHours(48);
+            k.EmailOnayToken = UretKod();
+            k.EmailOnayTokenSon = DateTime.UtcNow.AddSeconds(60);
             await _context.SaveChangesAsync();
             await KayitOnayMailiGonder(k);
-            return "Doğrulama e-postası gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin.";
+            return (true, "Yeni doğrulama kodu gönderildi. Gelen kutusu ve spam klasörünü kontrol edin.");
         }
 
         public async Task<(bool Success, string? Token, string Message)> GirisYap(string email, string sifre)
@@ -254,47 +267,55 @@ namespace TarimSistemi.Services
             return (true, "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.");
         }
 
-        /// <summary>E-posta bilinen hesaba şifre sıfırlama bağlantısı gönderir (hesap yoksa da genel mesaj).</summary>
-        public async Task<string> SifremiUnuttumIstekAsync(string email)
+        /// <summary>E-posta bilinen hesaba 6 haneli şifre sıfırlama kodu gönderir.</summary>
+        public async Task<(bool Ok, string Message)> SifremiUnuttumIstekAsync(string email)
         {
             var emailNorm = email.Trim().ToLowerInvariant();
             var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.Email.ToLower() == emailNorm);
             if (k == null)
-                return "İsteğiniz alındı. Bu adrese kayıtlı hesap varsa şifre sıfırlama bağlantısı e-posta ile gönderilir.";
+                return (false, "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.");
 
-            k.SifreSifirlamaToken = UretUrlToken();
-            k.SifreSifirlamaTokenSon = DateTime.UtcNow.AddHours(2);
+            k.SifreSifirlamaToken = UretKod();
+            k.SifreSifirlamaTokenSon = DateTime.UtcNow.AddSeconds(60);
             k.BekleyenSifreHash = null;
             k.SifreOnayToken = null;
             k.SifreOnayTokenSon = null;
             await _context.SaveChangesAsync();
 
-            var link = $"{PublicBaseUrl}/Home/SifreSifirla?token={Uri.EscapeDataString(k.SifreSifirlamaToken)}";
             var html = $@"
-<p>Merhaba {System.Net.WebUtility.HtmlEncode(k.AdSoyad)},</p>
-<p>Şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın ve yeni şifrenizi belirleyin:</p>
-<p><a href=""{link}"">{link}</a></p>
-<p>Bu bağlantı 2 saat geçerlidir. Siz bu isteği yapmadıysanız bu e-postayı yok sayın; mevcut şifreniz değişmez.</p>";
+<div style='font-family:sans-serif;max-width:480px;margin:auto;'>
+<p>Merhaba <strong>{System.Net.WebUtility.HtmlEncode(k.AdSoyad)}</strong>,</p>
+<p>Şifre sıfırlama kodunuz:</p>
+<div style='font-size:2.2rem;font-weight:800;letter-spacing:10px;text-align:center;
+            background:#fff3e0;border:2px solid #ff9800;border-radius:12px;padding:18px;
+            color:#e65100;margin:20px 0;'>{k.SifreSifirlamaToken}</div>
+<p style='font-size:0.9rem;color:#666;'>Bu kod <strong>60 saniye</strong> geçerlidir. Siz bu isteği yapmadıysanız bu e-postayı yok sayın; mevcut şifreniz değişmez.</p>
+</div>";
 
-            await _emailGonderici.GonderAsync(k.Email, "Şifre sıfırlama — Akıllı Tarım", html);
-            return "Şifre sıfırlama bağlantısı e-postanıza gönderildi. Gelen kutusu ve spam klasörünü kontrol edin.";
+            await _emailGonderici.GonderAsync(k.Email, "Şifre sıfırlama kodu — Akıllı Tarım", html);
+            return (true, "Şifre sıfırlama kodu e-postanıza gönderildi. Gelen kutusu ve spam klasörünü kontrol edin.");
         }
 
-        public async Task<(bool Ok, string Message)> SifreSifirlaKaydetAsync(string token, string yeniSifre)
+        public async Task<(bool Ok, string Message)> SifreSifirlaKaydetAsync(string email, string kod, string yeniSifre)
         {
-            token = Uri.UnescapeDataString(token ?? "").Trim();
-            if (string.IsNullOrEmpty(token))
-                return (false, "Geçersiz bağlantı.");
+            var emailNorm = email.Trim().ToLowerInvariant();
+            kod = kod.Trim();
+
+            if (string.IsNullOrEmpty(emailNorm) || string.IsNullOrEmpty(kod))
+                return (false, "E-posta veya kod eksik.");
 
             if (string.IsNullOrEmpty(yeniSifre) || yeniSifre.Length < 6)
                 return (false, "Yeni şifre en az 6 karakter olmalıdır.");
 
-            var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.SifreSifirlamaToken == token);
+            var k = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.Email.ToLower() == emailNorm);
             if (k == null)
-                return (false, "Bağlantı geçersiz veya zaten kullanılmış.");
+                return (false, "Bu e-postaya kayıtlı hesap bulunamadı.");
+
+            if (k.SifreSifirlamaToken != kod)
+                return (false, "Kod hatalı. Lütfen kontrol edin.");
 
             if (k.SifreSifirlamaTokenSon == null || k.SifreSifirlamaTokenSon < DateTime.UtcNow)
-                return (false, "Sıfırlama süresi dolmuş. Giriş sayfasından yeni istek gönderin.");
+                return (false, "Kodun süresi dolmuş. Yeni kod isteyin.");
 
             k.SifreHash = BCrypt.Net.BCrypt.HashPassword(yeniSifre);
             k.SifreSifirlamaToken = null;

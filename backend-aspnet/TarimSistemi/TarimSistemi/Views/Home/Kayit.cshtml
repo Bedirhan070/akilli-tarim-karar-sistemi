@@ -140,8 +140,36 @@
             <p class="subtitle">Yeni hesap oluşturun</p>
         </div>
 
-        <div id="successMessage" class="alert alert-success d-none py-2" style="font-size:0.85rem;"></div>
         <div id="errorMessage" class="alert alert-danger d-none py-2" style="font-size:0.85rem;"></div>
+
+        <!-- Adım 2: Kod doğrulama (kayıt sonrası gösterilir) -->
+        <div id="kodPaneli" class="d-none">
+            <div class="alert alert-success py-2 mb-3" style="font-size:0.85rem;">
+                <strong>Kod gönderildi!</strong> E-postanıza 6 haneli doğrulama kodu gönderdik.
+                Gelen kutusu ve spam klasörünü kontrol edin.
+            </div>
+            <div class="text-center mb-3">
+                <span id="sayacBadge" class="badge bg-success px-3 py-2" style="font-size:0.85rem;">
+                    <i class="fas fa-clock me-1"></i>Kodun geçerlilik süresi: <span id="sayacSure">1:00</span>
+                </span>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Doğrulama Kodu</label>
+                <input type="text" class="form-control text-center fw-bold"
+                       id="dogrulamaKodu" maxlength="6" placeholder="_ _ _ _ _ _"
+                       style="font-size:1.6rem;letter-spacing:8px;" autocomplete="one-time-code" />
+            </div>
+            <div id="kodError" class="alert alert-danger d-none py-2 mb-2" style="font-size:0.85rem;"></div>
+            <button type="button" class="btn btn-auth mb-2" id="btnDogrula">
+                <i class="fas fa-check-circle me-2"></i>Doğrula ve Giriş Yap
+            </button>
+            <div class="text-center mt-2" id="yenileWrap">
+                <button type="button" class="btn btn-link btn-sm text-muted p-0" id="btnKodYenile">
+                    Kod gelmedi veya süresi doldu, tekrar gönder
+                </button>
+                <span id="yenileSonuc" class="small ms-2 text-muted"></span>
+            </div>
+        </div>
 
         <form id="kayitForm">
             <div class="mb-3">
@@ -211,10 +239,8 @@
             const sifre = document.getElementById('sifre').value;
             const sifreTekrar = document.getElementById('sifreTekrar').value;
             const errEl = document.getElementById('errorMessage');
-            const sucEl = document.getElementById('successMessage');
 
             errEl.classList.add('d-none');
-            sucEl.classList.add('d-none');
 
             if (sifre !== sifreTekrar) {
                 errEl.textContent = 'Şifreler eşleşmiyor';
@@ -240,14 +266,16 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    sucEl.innerHTML = '<strong>' + (data.message || 'Kayıt alındı.') + '</strong>'
-                        + '<p class="mb-2 mt-2 small mb-0">Hesabınızı kullanmak için e-postanızdaki <strong>doğrulama bağlantısına</strong> tıklamanız gerekir.</p>'
-                        + '<ul class="small mb-3 ps-3 text-start mb-0"><li>Konu satırında «e-posta doğrulama» benzeri bir başlık arayın.</li>'
-                        + '<li>Gelen kutusu ve <strong>spam / gereksiz</strong> klasörüne bakın; ileti birkaç dakika gecikebilir.</li>'
-                        + '<li>Bağlantıya tıklamadan giriş yapamazsınız. Mail gelmezse <a href="/Home/Login" class="text-success fw-semibold">giriş sayfasından</a> doğrulama e-postasını yeniden isteyin.</li></ul>'
-                        + '<div><a href="/Home/Login" class="btn btn-outline-success btn-sm">Giriş sayfasına git</a></div>';
-                    sucEl.classList.remove('d-none');
                     document.getElementById('kayitForm').classList.add('d-none');
+                    document.getElementById('kodPaneli').classList.remove('d-none');
+                    document.getElementById('dogrulamaKodu').focus();
+                    baslatSayac();
+                } else if (response.status === 409) {
+                    errEl.textContent = data.message + ' Giriş sayfasına yönlendiriliyorsunuz...';
+                    errEl.classList.remove('d-none');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Yönlendiriliyor...';
+                    setTimeout(function () { window.location.href = '/Home/Login'; }, 2000);
                 } else {
                     errEl.textContent = data.message;
                     errEl.classList.remove('d-none');
@@ -260,6 +288,122 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Kayıt Ol';
             }
+        });
+
+        var _kayitEmail = '';
+        var _sayacInterval = null;
+
+        function baslatSayac() {
+            clearInterval(_sayacInterval);
+            var badge = document.getElementById('sayacBadge');
+            var yenileBtn = document.getElementById('btnKodYenile');
+            var yenileWrap = document.getElementById('yenileWrap');
+            var kalan = 60;
+
+            function guncelleBadge() {
+                var sn = kalan % 60;
+                var sure = document.getElementById('sayacSure');
+                if (sure) sure.textContent = Math.floor(kalan / 60) + ':' + (sn < 10 ? '0' + sn : sn);
+                if (kalan <= 10) {
+                    badge.className = 'badge bg-danger px-3 py-2';
+                } else if (kalan <= 30) {
+                    badge.className = 'badge bg-warning text-dark px-3 py-2';
+                } else {
+                    badge.className = 'badge bg-success px-3 py-2';
+                }
+            }
+
+            badge.className = 'badge bg-success px-3 py-2';
+            badge.innerHTML = '<i class="fas fa-clock me-1"></i>Kodun geçerlilik süresi: <span id="sayacSure">1:00</span>';
+
+            _sayacInterval = setInterval(function () {
+                kalan--;
+                if (kalan <= 0) {
+                    clearInterval(_sayacInterval);
+                    badge.className = 'badge bg-danger px-3 py-2';
+                    badge.innerHTML = '<i class="fas fa-times-circle me-1"></i>Kod süresi doldu! Yeni kod isteyin.';
+                    yenileBtn.classList.replace('text-muted', 'text-danger');
+                    yenileWrap.style.fontWeight = '600';
+                } else {
+                    guncelleBadge();
+                }
+            }, 1000);
+        }
+
+        document.getElementById('kayitForm').addEventListener('submit', function (e) {
+            _kayitEmail = document.getElementById('email').value.trim();
+        });
+
+        document.getElementById('btnDogrula').addEventListener('click', async function () {
+            var kod = document.getElementById('dogrulamaKodu').value.trim();
+            var errEl = document.getElementById('kodError');
+            errEl.classList.add('d-none');
+
+            if (kod.length !== 6) {
+                errEl.textContent = '6 haneli kodu eksiksiz girin.';
+                errEl.classList.remove('d-none');
+                return;
+            }
+
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Doğrulanıyor...';
+
+            try {
+                var r = await fetch('/api/Auth/email-dogrula', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: _kayitEmail, kod: kod })
+                });
+                var d = await r.json();
+                if (r.ok) {
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Doğrulandı! Yönlendiriliyorsunuz...';
+                    setTimeout(function () { window.location.href = '/Home/Login'; }, 1200);
+                } else {
+                    errEl.textContent = (d.message || 'Kod doğrulanamadı.') + ' Yeni kod için aşağıdaki butona tıklayın.';
+                    errEl.classList.remove('d-none');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Doğrula ve Giriş Yap';
+                    document.getElementById('yenileWrap').style.fontWeight = '600';
+                    document.getElementById('btnKodYenile').classList.replace('text-muted', 'text-danger');
+                }
+            } catch {
+                errEl.textContent = 'Sunucuya bağlanılamadı.';
+                errEl.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Doğrula ve Giriş Yap';
+            }
+        });
+
+        document.getElementById('dogrulamaKodu').addEventListener('input', function () {
+            this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        });
+
+        document.getElementById('btnKodYenile').addEventListener('click', async function () {
+            var sonuc = document.getElementById('yenileSonuc');
+            var yenileBtn = document.getElementById('btnKodYenile');
+            sonuc.textContent = 'Gönderiliyor...';
+            yenileBtn.disabled = true;
+            try {
+                var r = await fetch('/api/Auth/email-dogrulama-yenile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: _kayitEmail })
+                });
+                var d = await r.json();
+                sonuc.textContent = d.message || (r.ok ? 'Kod gönderildi.' : 'İşlem başarısız.');
+                if (r.ok) {
+                    yenileBtn.classList.replace('text-danger', 'text-muted');
+                    document.getElementById('yenileWrap').style.fontWeight = '';
+                    document.getElementById('kodError').classList.add('d-none');
+                    document.getElementById('dogrulamaKodu').value = '';
+                    document.getElementById('dogrulamaKodu').focus();
+                    baslatSayac();
+                }
+            } catch {
+                sonuc.textContent = 'İstek gönderilemedi.';
+            }
+            yenileBtn.disabled = false;
         });
 
         document.querySelectorAll('.btn-toggle-sifre').forEach(function (btn) {

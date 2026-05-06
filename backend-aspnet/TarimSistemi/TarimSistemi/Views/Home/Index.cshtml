@@ -2,9 +2,19 @@
     Layout = null;
 }
 <script>
-    if (localStorage.getItem('token')) {
-        window.location.href = '/Home/Dashboard';
-    } else {
+    (function () {
+        var token = localStorage.getItem('token');
+        if (token) {
+            try {
+                var payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.exp && payload.exp * 1000 > Date.now()) {
+                    window.location.href = '/Home/Dashboard';
+                    return;
+                }
+            } catch {}
+            localStorage.removeItem('token');
+            document.cookie = 'tarim_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; samesite=strict';
+        }
         window.location.href = '/Home/Login';
-    }
+    })();
 </script>

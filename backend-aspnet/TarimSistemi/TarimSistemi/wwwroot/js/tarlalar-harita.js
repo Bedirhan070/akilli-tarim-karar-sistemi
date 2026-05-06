@@ -29,11 +29,19 @@ async function loadUrunler() {
         const res = await fetch('/api/Urun', { headers: tarlaAuthHeaders() });
         if (!res.ok) throw new Error();
         urunlerCache = await res.json();
-        if (sel) sel.innerHTML = urunSecenekleriHtml(null);
+        if (sel) {
+            sel.innerHTML = urunSecenekleriHtml(null);
+            varsayilanUrünSec(sel);
+        }
     } catch {
         urunlerCache = [];
         if (sel) sel.innerHTML = '<option value="">Liste alınamadı</option>';
     }
+}
+
+function varsayilanUrünSec(selectEl) {
+    const bugday = urunlerCache.find(u => u.urunAdi && u.urunAdi.toLowerCase().includes('buğday'));
+    if (bugday && selectEl) selectEl.value = bugday.urunId;
 }
 
 /* ── İl/İlçe Verisi ─────────────────────────────────────────────────────── */
@@ -290,7 +298,7 @@ function resetForm(removeMarker) {
     document.getElementById('fBoylam').value= '';
     document.getElementById('fIsim').value  = '';
     const fu = document.getElementById('fUrun');
-    if (fu) fu.selectedIndex = 0;
+    if (fu) { fu.selectedIndex = 0; varsayilanUrünSec(fu); }
     document.getElementById('konumEmpty').classList.remove('d-none');
     document.getElementById('konumFilled').classList.add('d-none');
     document.getElementById('btnKaydet').disabled = true;
@@ -381,10 +389,15 @@ function renderTarlalar(data) {
         return;
     }
     el.innerHTML = data.map(l => {
-        const urunYok = !l.urunId;
-        const etiket = urunYok
-            ? '<span class="tarla-urun-etiket yok"><i class="fas fa-exclamation-circle me-1"></i>Ürün yok — Dashboard analizi için seçin</span>'
-            : `<span class="tarla-urun-etiket var"><i class="fas fa-leaf me-1"></i>${escapeHtml(l.urunAdi || 'Ürün')}</span>`;
+        const urunYok   = !l.urunId;
+        const urunAdi   = l.urunAdi || '';
+        const bugday    = urunAdi.toLowerCase().includes('buğday');
+        const etiket    = urunYok
+            ? '<span class="tarla-urun-etiket yok"><i class="fas fa-exclamation-circle me-1"></i>Ürün seçilmedi — analiz için gerekli</span>'
+            : `<span class="tarla-urun-etiket var"><i class="fas fa-leaf me-1"></i>${escapeHtml(urunAdi)}</span>`;
+        const urunNot   = (!urunYok && !bugday)
+            ? `<div style="font-size:0.72rem;color:#888;margin-bottom:8px;"><i class="fas fa-info-circle me-1" style="color:#ff9800;"></i>Risk analizi Buğday verileriyle optimize edilmiştir; bu ürün için hava durumu kuralları uygulanır.</div>`
+            : '';
         return `
         <div class="tarla-kart${urunYok ? ' tarla-kart--urunyok' : ''}">
             <button type="button" class="btn-sil-tarla" onclick="silTarla(${l.lokasyonId})" title="Bu tarlayı sil" aria-label="Tarlayı sil">
@@ -392,6 +405,7 @@ function renderTarlalar(data) {
             </button>
             <div class="tarla-kart-name">${escapeHtml(l.isim || 'İsimsiz tarla')}</div>
             ${etiket}
+            ${urunNot}
             <div class="tarla-kart-yer">
                 <i class="fas fa-map-pin"></i>
                 <span>${escapeHtml(l.sehir)}${l.ilce ? ' · ' + escapeHtml(l.ilce) : ''}</span>

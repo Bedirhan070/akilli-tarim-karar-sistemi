@@ -246,9 +246,22 @@
     </div>
 
     <script>
-        if (localStorage.getItem('token')) {
-            window.location.href = '/Home/Dashboard';
-        }
+        (function () {
+            var token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                var payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.exp && payload.exp * 1000 > Date.now()) {
+                    window.location.href = '/Home/Dashboard';
+                } else {
+                    // Token süresi dolmuş — temizle, login formunu göster
+                    localStorage.removeItem('token');
+                    document.cookie = 'tarim_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; samesite=strict';
+                }
+            } catch {
+                localStorage.removeItem('token');
+            }
+        })();
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -270,7 +283,7 @@
 
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
-                    document.cookie = `tarim_token=${data.token}; path=/; samesite=strict`;
+                    document.cookie = `tarim_token=${data.token}; path=/; max-age=86400; samesite=strict`;
                     window.location.href = '/Home/Dashboard';
                 } else {
                     const err = document.getElementById('errorMessage');
@@ -314,8 +327,8 @@
                     body: JSON.stringify({ email: em })
                 });
                 const d = await r.json();
-                out.textContent = d.message || 'İstek tamamlandı.';
-                out.className = 'small mt-2 text-success';
+                out.textContent = d.message || (r.ok ? 'Kod gönderildi.' : 'İşlem başarısız.');
+                out.className = 'small mt-2 ' + (r.ok ? 'text-success' : 'text-danger');
                 out.classList.remove('d-none');
             } catch {
                 out.textContent = 'İstek gönderilemedi.';

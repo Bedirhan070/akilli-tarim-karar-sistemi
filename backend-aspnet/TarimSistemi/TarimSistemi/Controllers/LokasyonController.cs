@@ -162,6 +162,15 @@ namespace TarimSistemi.Controllers
             if (lokasyon.KullaniciId != kullaniciId)
                 return Forbid();
 
+            // FK kısıtlaması nedeniyle önce bağlı kayıtları sil
+            var havaVerileri = await _context.HavaVerileri
+                .Where(h => h.LokasyonId == id).ToListAsync();
+            _context.HavaVerileri.RemoveRange(havaVerileri);
+
+            var oneriler = await _context.Oneriler
+                .Where(o => o.LokasyonId == id).ToListAsync();
+            _context.Oneriler.RemoveRange(oneriler);
+
             _context.Lokasyonlar.Remove(lokasyon);
             await _context.SaveChangesAsync();
 

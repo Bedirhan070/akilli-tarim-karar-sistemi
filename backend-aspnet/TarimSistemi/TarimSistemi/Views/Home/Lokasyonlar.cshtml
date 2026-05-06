@@ -416,7 +416,7 @@
 
 <div class="tarla-page-header">
     <h1><i class="fas fa-tractor me-2" style="color:#4caf50;"></i>Tarlalarım</h1>
-    <p>Tarlanızın yerini haritadan işaretleyin, isim ve ürün seçin. Ürün seçimi, Dashboard’daki <strong>bugünkü risk analizi</strong> için gereklidir.</p>
+    <p>Tarlanızın yerini haritadan işaretleyin, isim ve ürün seçin. Risk analizi <strong>Buğday</strong> için optimize edilmiştir; diğer ürünler için hava durumu tabanlı değerlendirme yapılır.</p>
     <div class="tarla-adimlar">
         <div class="tarla-adim">
             <span class="tarla-adim-num">1</span>
@@ -424,7 +424,7 @@
         </div>
         <div class="tarla-adim">
             <span class="tarla-adim-num">2</span>
-            <span><strong>Sağda</strong> isim ve ürünü doldurun</span>
+            <span><strong>Sağda</strong> isim girin, ürün Buğday seçili gelir</span>
         </div>
         <div class="tarla-adim">
             <span class="tarla-adim-num">3</span>
@@ -473,7 +473,7 @@
                 <i class="fas fa-plus-circle"></i>
                 Yeni tarla ekle
             </h2>
-            <p class="panel-card-sub">Önce haritadan konum seçin. Ürün seçmeden de kaydedebilirsiniz; analiz için sonra listeden ekleyebilirsiniz.</p>
+            <p class="panel-card-sub">Önce haritadan konum seçin, ardından isim ve ürün girin. Buğday varsayılan olarak seçilidir; analiz en doğru sonucu Buğday için verir.</p>
 
             <div id="konumEmpty" class="konum-empty mb-3">
                 <i class="fas fa-hand-pointer d-block mb-2" style="font-size:1.6rem;"></i>
@@ -498,8 +498,9 @@
                 <select class="form-select" id="fUrun" aria-describedby="fUrunHelp">
                     <option value="">Yükleniyor…</option>
                 </select>
-                <small id="fUrunHelp" class="text-muted d-block mt-2" style="font-size:0.78rem;line-height:1.4;">
-                    Buğday, mısır vb. seçimi risk hesabında kullanılır. Kayıttan sonra aşağıdaki listeden de değiştirebilirsiniz.
+                <small id="fUrunHelp" class="d-block mt-2" style="font-size:0.78rem;line-height:1.5;color:#666;">
+                    <i class="fas fa-info-circle me-1" style="color:#4caf50;"></i>
+                    Analiz motoru <strong>Buğday</strong> için eğitilmiştir ve varsayılan olarak seçilidir. Diğer ürünleri seçebilirsiniz; bu durumda hava durumu kuralları devreye girer. Kaydettikten sonra aşağıdaki listeden değiştirebilirsiniz.
                 </small>
             </div>
 

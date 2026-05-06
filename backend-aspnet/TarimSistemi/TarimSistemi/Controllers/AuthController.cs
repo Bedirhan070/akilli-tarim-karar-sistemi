@@ -30,7 +30,11 @@ namespace TarimSistemi.Controllers
             var sonuc = await _authService.KayitOl(kayit.AdSoyad, kayit.Email, kayit.Sifre, kayit.Telefon);
 
             if (!sonuc.Success)
+            {
+                if (sonuc.ZatenKayitli)
+                    return Conflict(new { message = sonuc.Message });
                 return BadRequest(new { message = sonuc.Message });
+            }
 
             return Ok(new { message = sonuc.Message });
         }
@@ -99,7 +103,8 @@ namespace TarimSistemi.Controllers
         [HttpPost("email-dogrulama-yenile")]
         public async Task<IActionResult> EmailDogrulamaYenile([FromBody] EmailDogrulamaYenileDto body)
         {
-            var message = await _authService.EmailDogrulamaYenidenGonder(body.Email ?? "");
+            var (ok, message) = await _authService.EmailDogrulamaYenidenGonder(body.Email ?? "");
+            if (!ok) return BadRequest(new { message });
             return Ok(new { message });
         }
 
@@ -107,15 +112,26 @@ namespace TarimSistemi.Controllers
         [HttpPost("sifremi-unuttum")]
         public async Task<IActionResult> SifremiUnuttum([FromBody] SifremiUnuttumDto body)
         {
-            var message = await _authService.SifremiUnuttumIstekAsync(body.Email ?? "");
+            var (ok, message) = await _authService.SifremiUnuttumIstekAsync(body.Email ?? "");
+            if (!ok) return BadRequest(new { message });
             return Ok(new { message });
+        }
+
+        // POST: api/Auth/email-dogrula
+        [HttpPost("email-dogrula")]
+        public async Task<IActionResult> EmailDogrula([FromBody] EmailDogrulaDto body)
+        {
+            var (ok, msg) = await _authService.OnaylaKayitEmailiAsync(body.Email ?? "", body.Kod ?? "");
+            if (!ok)
+                return BadRequest(new { message = msg });
+            return Ok(new { message = msg });
         }
 
         // POST: api/Auth/sifre-sifirla
         [HttpPost("sifre-sifirla")]
         public async Task<IActionResult> SifreSifirla([FromBody] SifreSifirlaDto body)
         {
-            var (ok, msg) = await _authService.SifreSifirlaKaydetAsync(body.Token ?? "", body.YeniSifre ?? "");
+            var (ok, msg) = await _authService.SifreSifirlaKaydetAsync(body.Email ?? "", body.Kod ?? "", body.YeniSifre ?? "");
             if (!ok)
                 return BadRequest(new { message = msg });
             return Ok(new { message = msg });
@@ -127,11 +143,12 @@ namespace TarimSistemi.Controllers
         public async Task<IActionResult> TelegramBaglamaLinki()
         {
             if (!_telegramService.Aktif)
-                return BadRequest(new { message = "Telegram botu henüz yapılandırılmamış." });
+                return BadRequest(new { message = "Telegram botu henüz yapılandırılmamış. BotToken eksik." });
 
-            var botUsername = _telegramService.BotUsername;
+            // BotUsername config'de yoksa getMe ile otomatik çek
+            var botUsername = await _telegramService.GetBotUsernameAsync();
             if (string.IsNullOrWhiteSpace(botUsername))
-                return BadRequest(new { message = "Telegram:BotUsername yapılandırılmamış. appsettings'i kontrol edin." });
+                return BadRequest(new { message = "Bot kullanıcı adı alınamadı. BotToken'ı kontrol edin." });
 
             var kullaniciId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var (ok, token, message) = await _authService.UretTelegramBaglamaTokenu(kullaniciId);
@@ -226,9 +243,16 @@ namespace TarimSistemi.Controllers
         public string Email { get; set; } = "";
     }
 
+    public class EmailDogrulaDto
+    {
+        public string Email { get; set; } = "";
+        public string Kod { get; set; } = "";
+    }
+
     public class SifreSifirlaDto
     {
-        public string Token { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Kod { get; set; } = "";
         public string YeniSifre { get; set; } = "";
     }
 

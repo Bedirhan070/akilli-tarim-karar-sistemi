@@ -73,25 +73,7 @@ namespace TarimSistemi.Controllers
             return View();
         }
 
-        // GET: /Home/EmailOnay?token=...
-        public async Task<IActionResult> EmailOnay(string? token)
-        {
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                ViewBag.Basari = false;
-                ViewBag.Baslik = "Geçersiz bağlantı";
-                ViewBag.Mesaj = "Doğrulama adresi eksik veya hatalı.";
-                return View("OnaySonuc");
-            }
-
-            var (ok, mesaj) = await _authService.OnaylaKayitEmailiAsync(token);
-            ViewBag.Basari = ok;
-            ViewBag.Baslik = ok ? "Hesabınız doğrulandı" : "Doğrulama başarısız";
-            ViewBag.Mesaj = mesaj;
-            return View("OnaySonuc");
-        }
-
-        // GET: /Home/SifreEmailOnay?token=...
+        // GET: /Home/SifreEmailOnay?token=... (şifre değiştirme onayı — hâlâ link tabanlı)
         public async Task<IActionResult> SifreEmailOnay(string? token)
         {
             if (string.IsNullOrWhiteSpace(token))
