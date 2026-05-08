@@ -103,6 +103,7 @@ namespace TarimSistemi
                     };
                 });
 
+            builder.Services.AddMemoryCache();
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
@@ -134,7 +135,7 @@ namespace TarimSistemi
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+           // app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
 

@@ -372,6 +372,12 @@
                 <i class="fas fa-history"></i> Öneri Geçmişi
             </a>
 
+            <div class="nav-section-title">Harita & Risk</div>
+            <a href="/Home/SehirRiskAnalizi" class="nav-link @(ViewData["ActivePage"]?.ToString() == "sehirrisk" ? "active" : "")">
+                <i class="fas fa-wheat-awn mt-1" style="color:#f9a825;"></i>
+                <span>Buğday Risk Haritası<small class="d-block" style="font-size:0.68rem;">Şehirlere göre risk analizi</small></span>
+            </a>
+
             <div class="nav-section-title">Ayarlar</div>
             <a href="/Home/Hesabim#telegram" id="navTelegram" class="nav-link @(ViewData["ActivePage"]?.ToString() == "hesap" ? "active" : "")">
                 <i class="fab fa-telegram-plane mt-1" style="color:#229ED9;"></i>

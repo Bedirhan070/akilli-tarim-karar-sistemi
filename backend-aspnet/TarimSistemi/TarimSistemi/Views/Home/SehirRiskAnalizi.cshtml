@@ -1,0 +1,979 @@
+@{
+    ViewData["Title"] = "Buğday Risk Haritası";
+    ViewData["ActivePage"] = "sehirrisk";
+}
+
+@section Styles {
+<style>
+.risk-page { max-width:1420px; margin:0 auto; }
+
+/* ── Hero ── */
+.risk-hero {
+    background:linear-gradient(135deg,#fffde7 0%,#fff 50%,#fff8e1 100%);
+    border:1px solid #ffe082; border-radius:16px;
+    padding:20px 26px; margin-bottom:16px;
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:14px;
+    box-shadow:0 6px 24px rgba(249,168,37,.08);
+}
+.risk-hero h1 { font-size:1.35rem; font-weight:800; color:#e65100; margin:0 0 5px; }
+.risk-hero p  { margin:0; font-size:.9rem; color:#5d4037; line-height:1.5; max-width:640px; }
+
+.btn-yenile {
+    background:linear-gradient(135deg,#f9a825,#fdd835);
+    border:none; color:#3e2723; padding:10px 22px;
+    border-radius:11px; font-weight:800;
+    box-shadow:0 4px 14px rgba(249,168,37,.35);
+    transition:all .2s; white-space:nowrap; flex-shrink:0; cursor:pointer;
+}
+.btn-yenile:hover  { transform:translateY(-2px); box-shadow:0 6px 20px rgba(249,168,37,.5); color:#1a0000; }
+.btn-yenile:disabled { opacity:.6; transform:none; cursor:default; }
+
+/* ── ML Banner ── */
+.ml-banner {
+    display:none; align-items:center; gap:14px;
+    background:linear-gradient(135deg,#fff3e0,#fff8f0);
+    border:1.5px solid #ffb74d; border-radius:13px;
+    padding:14px 20px; margin-bottom:14px;
+    box-shadow:0 3px 12px rgba(255,152,0,.12);
+}
+.ml-banner.goster { display:flex; }
+.ml-banner-ikon {
+    width:44px; height:44px; border-radius:12px; flex-shrink:0;
+    background:linear-gradient(135deg,#ff9800,#f57c00);
+    color:white; display:flex; align-items:center; justify-content:center;
+    font-size:1.2rem; box-shadow:0 2px 8px rgba(255,152,0,.4);
+}
+.ml-banner strong { font-size:.93rem; color:#e65100; display:block; margin-bottom:3px; }
+.ml-banner span   { font-size:.82rem; color:#6d4c41; line-height:1.4; }
+.ml-banner a { color:#e65100; font-weight:700; text-decoration:none; }
+.ml-banner a:hover { text-decoration:underline; }
+
+/* ── ML Chip ── */
+.ml-chip {
+    display:none; align-items:center; gap:8px;
+    background:#e8f5e9; border:1px solid #a5d6a7;
+    border-radius:10px; padding:8px 14px; margin-bottom:14px;
+    font-size:.82rem; font-weight:700; color:#1b5e20;
+}
+.ml-chip.goster { display:flex; }
+.ml-dot { width:8px; height:8px; border-radius:50%; background:#4caf50; animation:pulse 2s infinite; }
+@@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.guncelleme-lbl { font-size:.72rem; color:#6b8f78; font-weight:500; }
+
+/* ── Stat Row ── */
+.stat-row {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:12px; margin-bottom:16px;
+}
+@@media(max-width:700px){ .stat-row{grid-template-columns:repeat(2,1fr);} }
+
+.stat-kart {
+    background:white; border-radius:13px;
+    padding:15px 18px; display:flex; align-items:center; gap:13px;
+    border:1px solid #f0f0f0;
+    box-shadow:0 3px 12px rgba(0,0,0,.06);
+    transition:transform .2s,box-shadow .2s;
+}
+.stat-kart:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.1); }
+.stat-ikon {
+    width:46px; height:46px; border-radius:12px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:1.15rem;
+}
+.ik-yuksek{background:linear-gradient(135deg,#ef4444,#dc2626);color:white;}
+.ik-orta  {background:linear-gradient(135deg,#f97316,#ea580c);color:white;}
+.ik-dusuk {background:linear-gradient(135deg,#22c55e,#16a34a);color:white;}
+.ik-toplam{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;}
+.stat-sayi { font-size:1.95rem; font-weight:800; line-height:1; }
+.sy-y{color:#dc2626;} .sy-o{color:#ea580c;} .sy-d{color:#16a34a;} .sy-t{color:#1d4ed8;}
+.stat-lbl  { font-size:.74rem; font-weight:700; color:#6b7280; margin-top:2px; }
+
+/* ── Harita ── */
+.harita-kart {
+    background:white; border-radius:16px;
+    border:1px solid rgba(0,0,0,.07);
+    box-shadow:0 4px 22px rgba(0,0,0,.07);
+    overflow:hidden; margin-bottom:16px;
+    position:relative;
+}
+.harita-baslik {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px 10px; border-bottom:1px solid #f3f4f6;
+    flex-wrap:wrap; gap:8px;
+}
+.harita-baslik-sol { font-size:.9rem; font-weight:800; color:#1f2937; display:flex; align-items:center; gap:8px; }
+.harita-legend {
+    display:flex; align-items:center; gap:14px;
+    font-size:.76rem; font-weight:700;
+}
+.leg-item { display:flex; align-items:center; gap:5px; color:#374151; }
+.leg-kare {
+    width:13px; height:13px; border-radius:3px; flex-shrink:0;
+}
+
+#chartdiv { width:100%; height:520px; }
+@@media(max-width:768px){ #chartdiv{height:340px;} }
+
+/* Harita loading overlay */
+.harita-loading {
+    position:absolute; inset:56px 0 0 0;
+    background:rgba(255,255,255,.88);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:10px; font-size:.9rem; color:#6b7280;
+    font-weight:600; z-index:10;
+}
+.harita-loading i { font-size:1.8rem; color:#f9a825; }
+
+/* Seçili İl Bilgi Şeridi */
+.secili-serit {
+    display:none; align-items:center; gap:12px;
+    background:#fffbf0; border:1px solid #fde68a;
+    border-radius:10px; padding:10px 16px;
+    margin:0 16px 14px; font-size:.85rem;
+    font-weight:700; color:#92400e;
+}
+.secili-serit.goster { display:flex; }
+.secili-serit strong { color:#1f2937; font-size:.95rem; }
+.btn-secim-sifirla {
+    margin-left:auto; padding:4px 12px;
+    border-radius:8px; border:1.5px solid #fcd34d;
+    background:#fff; color:#92400e;
+    font-size:.76rem; font-weight:700; cursor:pointer;
+    transition:all .15s;
+}
+.btn-secim-sifirla:hover { background:#fef3c7; }
+
+/* ── Tablo ── */
+.tablo-kart {
+    background:white; border-radius:14px;
+    border:1px solid rgba(0,0,0,.07);
+    box-shadow:0 3px 14px rgba(0,0,0,.05);
+    overflow:hidden;
+}
+.tablo-header {
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:10px;
+    padding:15px 20px 13px; border-bottom:1px solid #f3f4f6;
+}
+.tablo-baslik { font-size:.9rem; font-weight:800; color:#1f2937; display:flex; align-items:center; gap:7px; }
+.tablo-sagda  { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+.filtre-grup { display:flex; gap:5px; flex-wrap:wrap; }
+.btn-f {
+    padding:5px 12px; border-radius:20px; font-size:.76rem; font-weight:700;
+    border:1.5px solid #e5e7eb; background:#fff; color:#6b7280;
+    cursor:pointer; transition:all .15s;
+}
+.bf-hepsi  { background:#dbeafe; color:#1e40af; border-color:#93c5fd; }
+.bf-yuksek { background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
+.bf-orta   { background:#fff3cd; color:#92400e; border-color:#fbbf24; }
+.bf-dusuk  { background:#d1fae5; color:#065f46; border-color:#6ee7b7; }
+
+.ara-input {
+    border:1.5px solid #e5e7eb; border-radius:9px;
+    padding:6px 12px; font-size:.84rem; font-weight:600;
+    outline:none; min-width:160px; transition:border-color .15s;
+}
+.ara-input:focus { border-color:#f9a825; }
+
+.tablo-scroll { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:.85rem; }
+thead th {
+    position:sticky; top:0; z-index:2; background:#f9fafb;
+    padding:10px 14px; font-size:.71rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em; color:#6b7280;
+    border-bottom:2px solid #f3f4f6; white-space:nowrap;
+    user-select:none;
+}
+thead th.siralama { cursor:pointer; }
+thead th.siralama:hover { color:#f9a825; }
+.sort-ok { margin-left:3px; opacity:.4; font-size:.65rem; }
+th.sort-asc .sort-ok, th.sort-desc .sort-ok { opacity:1; color:#f9a825; }
+
+tbody tr { border-bottom:1px solid #f9fafb; transition:background .12s; }
+tbody tr:hover { background:#fffbf0; }
+tbody tr.rk-y { border-left:3px solid #ef4444; }
+tbody tr.rk-o { border-left:3px solid #f97316; }
+tbody tr.rk-d { border-left:3px solid #22c55e; }
+tbody tr.rk-n { border-left:3px solid #d1d5db; }
+tbody tr.il-secili { background:#fef9c3 !important; }
+tbody td { padding:10px 14px; color:#374151; font-weight:600; white-space:nowrap; }
+.td-isim { font-weight:800; color:#1f2937; }
+
+.badge {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 9px; border-radius:999px;
+    font-size:.72rem; font-weight:800; white-space:nowrap;
+}
+.bg-y { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.bg-o { background:#fff3cd; color:#92400e; border:1px solid #fbbf24; }
+.bg-d { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+.bg-n { background:#f3f4f6; color:#6b7280; border:1px solid #d1d5db; }
+
+.mini-bar-wrap { display:flex; align-items:center; gap:7px; min-width:100px; }
+.mini-bar-bg   { flex:1; height:7px; background:#f3f4f6; border-radius:999px; overflow:hidden; }
+.mini-bar-fill { height:100%; border-radius:999px; }
+.mb-y { background:linear-gradient(90deg,#ef4444,#dc2626); }
+.mb-o { background:linear-gradient(90deg,#f97316,#ea580c); }
+.mb-d { background:linear-gradient(90deg,#22c55e,#16a34a); }
+.mini-pct { font-size:.78rem; font-weight:800; min-width:30px; color:#374151; }
+
+.ec {
+    display:inline-block; font-size:.69rem; font-weight:600;
+    padding:2px 8px; border-radius:20px;
+    background:#f3f4f6; color:#4b5563; border:1px solid #e5e7eb;
+}
+.ec-r { background:#fff3cd; color:#92400e; border-color:#fde68a; }
+.ec-g { background:#d1fae5; color:#065f46; border-color:#a7f3d0; }
+.ec-n { background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; }
+
+.satir-yok { text-align:center; padding:40px; color:#9ca3af; font-size:.9rem; }
+.btn-daha-fazla {
+    background:linear-gradient(135deg,#f9a825,#fdd835);
+    border:none; color:#3e2723; padding:9px 26px;
+    border-radius:20px; font-weight:800; font-size:.82rem;
+    box-shadow:0 3px 12px rgba(249,168,37,.3);
+    cursor:pointer; transition:all .2s;
+}
+.btn-daha-fazla:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(249,168,37,.45); }
+.tablo-footer {
+    padding:10px 20px; border-top:1px solid #f3f4f6;
+    font-size:.74rem; color:#9ca3af; font-weight:600;
+}
+
+/* ── İl Kartları ── */
+.kartlar-kart {
+    background:white; border-radius:16px;
+    border:1px solid rgba(0,0,0,.07);
+    box-shadow:0 3px 14px rgba(0,0,0,.05);
+    overflow:hidden; margin-bottom:16px;
+}
+.kartlar-header {
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:10px;
+    padding:14px 20px 12px; border-bottom:1px solid #f3f4f6;
+}
+.kartlar-baslik { font-size:.9rem; font-weight:800; color:#1f2937; display:flex; align-items:center; gap:7px; }
+.kartlar-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+    gap:11px; padding:16px;
+}
+@@media(max-width:600px){ .kartlar-grid{grid-template-columns:repeat(2,1fr);} }
+
+.il-kart {
+    border-radius:12px; padding:13px 14px;
+    border:1.5px solid #f0f0f0;
+    cursor:pointer;
+    transition:transform .15s,box-shadow .15s,border-color .15s;
+    background:#fff;
+}
+.il-kart:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.09); }
+.il-kart.kart-secili { box-shadow:0 0 0 2.5px #f9a825 !important; border-color:#f9a825 !important; }
+.il-kart.kart-y { border-left:4px solid #ef4444; }
+.il-kart.kart-o { border-left:4px solid #f97316; }
+.il-kart.kart-d { border-left:4px solid #22c55e; }
+.il-kart.kart-n { border-left:4px solid #d1d5db; background:#fafafa; }
+
+.kart-ust   { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:9px; gap:6px; }
+.kart-isim  { font-size:.95rem; font-weight:900; color:#1f2937; line-height:1.2; }
+.kart-bar-bg  { height:5px; background:#f3f4f6; border-radius:999px; overflow:hidden; margin-bottom:3px; }
+.kart-bar-fill{ height:100%; border-radius:999px; }
+.kart-pct-lbl { font-size:.67rem; font-weight:800; color:#9ca3af; }
+.kart-stats { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; margin:8px 0 7px; }
+.kart-stat  { font-size:.72rem; font-weight:600; color:#374151; }
+.kart-etken { font-size:.67rem; font-weight:700; padding:2px 8px; border-radius:20px; display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ke-y { background:#fee2e2; color:#991b1b; }
+.ke-o { background:#fff3cd; color:#92400e; }
+.ke-d { background:#d1fae5; color:#065f46; }
+.ke-n { background:#f3f4f6; color:#9ca3af; }
+.kart-yok { text-align:center; padding:40px 20px; color:#9ca3af; font-size:.9rem; grid-column:1/-1; }
+
+/* ── Özet Grafik (ring) ── */
+.ozet-kart {
+    background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.07);
+    margin-bottom:24px; overflow:hidden;
+}
+.ozet-baslik {
+    padding:16px 22px; font-weight:800; font-size:.95rem; color:#1f2937;
+    border-bottom:1px solid #f3f4f6; display:flex; align-items:center; gap:10px;
+}
+.ozet-icerik { padding:26px 28px 28px; }
+.ring-row { display:flex; gap:12px; align-items:stretch; flex-wrap:wrap; margin-bottom:20px; }
+.ring-blok {
+    flex:1; min-width:140px; background:#fafafa; border-radius:14px;
+    border:1.5px solid #f0f0f0; padding:20px 14px 16px;
+    display:flex; flex-direction:column; align-items:center; gap:0;
+    transition:transform .15s,box-shadow .15s;
+}
+.ring-blok:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.08); }
+.ring-blok.rb-y { border-top:3px solid #ef4444; }
+.ring-blok.rb-o { border-top:3px solid #f97316; }
+.ring-blok.rb-d { border-top:3px solid #22c55e; }
+.ring-blok.rb-n { border-top:3px solid #d1d5db; }
+.ring-wrap { position:relative; width:100px; height:100px; margin-bottom:10px; }
+.ring-svg  { width:100px; height:100px; transform:rotate(-90deg); }
+.ring-track { fill:none; stroke:#efefef; stroke-width:9; }
+.ring-fill  { fill:none; stroke-width:9; stroke-linecap:round;
+              stroke-dasharray:251.3; stroke-dashoffset:251.3;
+              transition:stroke-dashoffset .9s cubic-bezier(.4,0,.2,1); }
+.ring-center { position:absolute; inset:0; display:flex; flex-direction:column;
+               align-items:center; justify-content:center; }
+.ring-sayi { font-size:1.75rem; font-weight:900; line-height:1; }
+.ring-pct  { font-size:.68rem; font-weight:700; color:#9ca3af; margin-top:2px; }
+.ring-lbl  { font-size:.82rem; font-weight:700; color:#374151; text-align:center; }
+.ring-alt  { font-size:.69rem; color:#9ca3af; font-weight:600; margin-top:2px; }
+.ozet-bar {
+    display:flex; border-radius:999px; overflow:hidden; height:8px;
+    background:#f3f4f6; gap:2px;
+}
+.sb-y { background:#ef4444; transition:width .7s cubic-bezier(.4,0,.2,1); min-width:0; }
+.sb-o { background:#f97316; transition:width .7s cubic-bezier(.4,0,.2,1) .05s; min-width:0; }
+.sb-d { background:#22c55e; transition:width .7s cubic-bezier(.4,0,.2,1) .10s; min-width:0; }
+.sb-n { background:#d1d5db; transition:width .7s cubic-bezier(.4,0,.2,1) .15s; min-width:0; }
+</style>
+}
+
+<div class="risk-page">
+
+    <!-- Hero -->
+    <div class="risk-hero">
+        <div>
+            <h1><i class="fas fa-wheat-awn me-2"></i>Buğday Risk Haritası — 81 İl</h1>
+            <p>
+                Türkiye'nin tüm illerinde bugünkü hava verisi üzerinden <strong>ML modeli</strong> ile
+                buğday risk skoru hesaplanır. İle tıklayarak tabloyu filtreleyin, boş alana tıklayarak sıfırlayın.
+            </p>
+        </div>
+        <button id="btnYenile" class="btn-yenile" onclick="veriYukle(true)">
+            <i class="fas fa-rotate-right me-2"></i>Yenile
+        </button>
+    </div>
+
+    <!-- ML Banner -->
+    <div class="ml-banner" id="mlBanner">
+        <div class="ml-banner-ikon"><i class="fas fa-robot"></i></div>
+        <div>
+            <strong>ML servisi şu an aktif değil</strong>
+            <span>
+                Risk skorları kural tabanlı hesaplandı.
+                Gerçek ML tahminleri için <a href="/Home/Hesabim">FastAPI servisini başlatın</a>
+                ve yenileyin — sidebar'daki yeşil nokta aktif olunca ML devreye girer.
+            </span>
+        </div>
+    </div>
+
+    <!-- ML Chip -->
+    <div class="ml-chip" id="mlChip">
+        <span class="ml-dot"></span>
+        <span>Risk skorları <strong>ML modeli</strong> (Random Forest) ile hesaplandı</span>
+        <span class="guncelleme-lbl" id="guncellemeZaman"></span>
+    </div>
+
+    <!-- Stat Row -->
+    <div class="stat-row">
+        <div class="stat-kart">
+            <div class="stat-ikon ik-yuksek"><i class="fas fa-triangle-exclamation"></i></div>
+            <div><div class="stat-sayi sy-y" id="sY">—</div><div class="stat-lbl">Yüksek Riskli İl</div></div>
+        </div>
+        <div class="stat-kart">
+            <div class="stat-ikon ik-orta"><i class="fas fa-circle-exclamation"></i></div>
+            <div><div class="stat-sayi sy-o" id="sO">—</div><div class="stat-lbl">Orta Riskli İl</div></div>
+        </div>
+        <div class="stat-kart">
+            <div class="stat-ikon ik-dusuk"><i class="fas fa-circle-check"></i></div>
+            <div><div class="stat-sayi sy-d" id="sD">—</div><div class="stat-lbl">Düşük Riskli İl</div></div>
+        </div>
+        <div class="stat-kart">
+            <div class="stat-ikon ik-toplam"><i class="fas fa-map"></i></div>
+            <div><div class="stat-sayi sy-t" id="sT">—</div><div class="stat-lbl">Toplam İl</div></div>
+        </div>
+    </div>
+
+    <!-- Harita Kartı -->
+    <div class="harita-kart">
+        <div class="harita-baslik">
+            <div class="harita-baslik-sol">
+                <i class="fas fa-map-location-dot" style="color:#f9a825;"></i>
+                Türkiye Buğday Risk Haritası
+                <span style="font-size:.75rem;color:#9ca3af;font-weight:500;">(İle tıkla → tablo filtrele)</span>
+            </div>
+            <div class="harita-legend">
+                <div class="leg-item"><div class="leg-kare" style="background:#ef4444;"></div>Yüksek Risk</div>
+                <div class="leg-item"><div class="leg-kare" style="background:#f97316;"></div>Orta Risk</div>
+                <div class="leg-item"><div class="leg-kare" style="background:#22c55e;"></div>Düşük Risk</div>
+                <div class="leg-item"><div class="leg-kare" style="background:#d1d5db;"></div>Veri yok</div>
+            </div>
+        </div>
+
+        <!-- amCharts container -->
+        <div id="chartdiv"></div>
+
+        <!-- Loading overlay -->
+        <div class="harita-loading" id="haritaLoading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>81 il için hava verisi çekiliyor…</span>
+        </div>
+
+        <!-- Seçili il şeridi -->
+        <div class="secili-serit" id="seciliSerit">
+            <i class="fas fa-location-dot" style="color:#f9a825;"></i>
+            <span>Seçili il: <strong id="seciliIsim">—</strong></span>
+            <button class="btn-secim-sifirla" onclick="secimSifirla()">✕ Tümünü Göster</button>
+        </div>
+    </div>
+
+    <!-- Tablo -->
+    <div class="tablo-kart">
+        <div class="tablo-header">
+            <div class="tablo-baslik">
+                <i class="fas fa-table-list" style="color:#9ca3af;"></i>
+                Detaylı Tablo
+                <span style="font-size:.72rem;color:#9ca3af;font-weight:500;" id="satirSayisi"></span>
+            </div>
+            <div class="tablo-sagda">
+                <div class="filtre-grup">
+                    <button class="btn-f bf-hepsi" id="kfHepsi"  onclick="filtrele('hepsi')">Hepsi</button>
+                    <button class="btn-f"          id="kfYuksek" onclick="filtrele('Yüksek')">⛔ Yüksek</button>
+                    <button class="btn-f"          id="kfOrta"   onclick="filtrele('Orta')">⚠️ Orta</button>
+                    <button class="btn-f"          id="kfDusuk"  onclick="filtrele('Düşük')">✅ Düşük</button>
+                </div>
+                <input class="ara-input" id="araInput" type="text"
+                       placeholder="&#128269; İl ara..." oninput="tabloSifirlaVeYaz()">
+            </div>
+        </div>
+
+        <div class="tablo-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="siralama" data-k="sehir">İl <span class="sort-ok">▼</span></th>
+                        <th class="siralama" data-k="sicaklikMax">Maks °C <span class="sort-ok">▼</span></th>
+                        <th class="siralama" data-k="sicaklikMin">Min °C <span class="sort-ok">▼</span></th>
+                        <th class="siralama" data-k="nem">Nem % <span class="sort-ok">▼</span></th>
+                        <th class="siralama" data-k="yagis">Yağış mm <span class="sort-ok">▼</span></th>
+                        <th class="siralama" data-k="ruzgarHizi">Rüzgar <span class="sort-ok">▼</span></th>
+                        <th class="siralama sort-desc" data-k="riskSkoru">Risk Skoru <span class="sort-ok">▼</span></th>
+                        <th>Seviye</th>
+                        <th>Başlıca Etken</th>
+                    </tr>
+                </thead>
+                <tbody id="tabloBody">
+                    <tr><td colspan="9" class="satir-yok">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Veriler yükleniyor…
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="tablo-footer" id="tabloFooter"></div>
+    </div>
+
+    <!-- Risk Durum Grafiği -->
+    <div class="ozet-kart">
+        <div class="ozet-baslik">
+            <i class="fas fa-chart-pie" style="color:#f9a825;"></i>
+            Risk Durum Grafiği
+        </div>
+        <div class="ozet-icerik">
+            <div class="ring-row">
+                <!-- Yüksek Risk -->
+                <div class="ring-blok rb-y">
+                    <div class="ring-wrap">
+                        <svg class="ring-svg" viewBox="0 0 100 100">
+                            <circle class="ring-track" cx="50" cy="50" r="40"/>
+                            <circle class="ring-fill" id="ringFillY" cx="50" cy="50" r="40" stroke="#ef4444"/>
+                        </svg>
+                        <div class="ring-center">
+                            <span class="ring-sayi" id="ozY" style="color:#ef4444;">—</span>
+                            <span class="ring-pct"  id="ringPctY">il</span>
+                        </div>
+                    </div>
+                    <span class="ring-lbl">Yüksek Riskli</span>
+                    <span class="ring-alt">⛔ Kritik seviye</span>
+                </div>
+                <!-- Orta Risk -->
+                <div class="ring-blok rb-o">
+                    <div class="ring-wrap">
+                        <svg class="ring-svg" viewBox="0 0 100 100">
+                            <circle class="ring-track" cx="50" cy="50" r="40"/>
+                            <circle class="ring-fill" id="ringFillO" cx="50" cy="50" r="40" stroke="#f97316"/>
+                        </svg>
+                        <div class="ring-center">
+                            <span class="ring-sayi" id="ozO" style="color:#f97316;">—</span>
+                            <span class="ring-pct"  id="ringPctO">il</span>
+                        </div>
+                    </div>
+                    <span class="ring-lbl">Orta Riskli</span>
+                    <span class="ring-alt">⚠️ Dikkat gerektiriyor</span>
+                </div>
+                <!-- Düşük Risk -->
+                <div class="ring-blok rb-d">
+                    <div class="ring-wrap">
+                        <svg class="ring-svg" viewBox="0 0 100 100">
+                            <circle class="ring-track" cx="50" cy="50" r="40"/>
+                            <circle class="ring-fill" id="ringFillD" cx="50" cy="50" r="40" stroke="#22c55e"/>
+                        </svg>
+                        <div class="ring-center">
+                            <span class="ring-sayi" id="ozD" style="color:#22c55e;">—</span>
+                            <span class="ring-pct"  id="ringPctD">il</span>
+                        </div>
+                    </div>
+                    <span class="ring-lbl">Düşük Riskli</span>
+                    <span class="ring-alt">✅ Normal koşullar</span>
+                </div>
+                <!-- Veri Yok -->
+                <div class="ring-blok rb-n">
+                    <div class="ring-wrap">
+                        <svg class="ring-svg" viewBox="0 0 100 100">
+                            <circle class="ring-track" cx="50" cy="50" r="40"/>
+                            <circle class="ring-fill" id="ringFillN" cx="50" cy="50" r="40" stroke="#9ca3af"/>
+                        </svg>
+                        <div class="ring-center">
+                            <span class="ring-sayi" id="ozN" style="color:#9ca3af;">—</span>
+                            <span class="ring-pct"  id="ringPctN">il</span>
+                        </div>
+                    </div>
+                    <span class="ring-lbl">Veri Yok</span>
+                    <span class="ring-alt">⚫ Bağlantı yok</span>
+                </div>
+            </div>
+            <!-- İnce oransal bar -->
+            <div class="ozet-bar">
+                <div class="sb-y" id="sbY" style="width:0%;"></div>
+                <div class="sb-o" id="sbO" style="width:0%;"></div>
+                <div class="sb-d" id="sbD" style="width:0%;"></div>
+                <div class="sb-n" id="sbN" style="width:0%;"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<!-- amCharts 5 -->
+<script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/geodata/turkeyHigh.js"></script>
+
+<script>
+/* ── Plaka → amCharts ID eşlemesi ── */
+const IL_PLAKA = {
+    'Adana':1,'Adıyaman':2,'Afyonkarahisar':3,'Ağrı':4,'Amasya':5,
+    'Ankara':6,'Antalya':7,'Artvin':8,'Aydın':9,'Balıkesir':10,
+    'Bilecik':11,'Bingöl':12,'Bitlis':13,'Bolu':14,'Burdur':15,
+    'Bursa':16,'Çanakkale':17,'Çankırı':18,'Çorum':19,'Denizli':20,
+    'Diyarbakır':21,'Edirne':22,'Elazığ':23,'Erzincan':24,'Erzurum':25,
+    'Eskişehir':26,'Gaziantep':27,'Giresun':28,'Gümüşhane':29,'Hakkari':30,
+    'Hatay':31,'Isparta':32,'Mersin':33,'İstanbul':34,'İzmir':35,
+    'Kars':36,'Kastamonu':37,'Kayseri':38,'Kırklareli':39,'Kırşehir':40,
+    'Kocaeli':41,'Konya':42,'Kütahya':43,'Malatya':44,'Manisa':45,
+    'Kahramanmaraş':46,'Mardin':47,'Muğla':48,'Muş':49,'Nevşehir':50,
+    'Niğde':51,'Ordu':52,'Rize':53,'Sakarya':54,'Samsun':55,
+    'Siirt':56,'Sinop':57,'Sivas':58,'Tekirdağ':59,'Tokat':60,
+    'Trabzon':61,'Tunceli':62,'Şanlıurfa':63,'Uşak':64,'Van':65,
+    'Yozgat':66,'Zonguldak':67,'Aksaray':68,'Bayburt':69,'Karaman':70,
+    'Kırıkkale':71,'Batman':72,'Şırnak':73,'Bartın':74,'Ardahan':75,
+    'Iğdır':76,'Yalova':77,'Karabük':78,'Kilis':79,'Osmaniye':80,'Düzce':81
+};
+
+function sehirAmId(sehir) {
+    const n = IL_PLAKA[sehir];
+    return n ? 'TR-' + String(n).padStart(2, '0') : null;
+}
+
+/* amCharts geodata adı → API adı eşleme (farklı yazılanlar için) */
+const ISIM_ALIAS = {
+    'icel':           'mersin',
+    'icil':           'mersin',
+    'afyon':          'afyonkarahisar',
+    'kmaras':         'kahramanmaras',
+    'kahramanmaras':  'kahramanmaras',
+    'kahramanmaras':  'kahramanmaras',
+    'zonguldakkaradenizeregli': 'zonguldak',
+};
+
+/* Türkçe harf normalizer — isim bazlı fallback için */
+function normTR(s) {
+    if (!s) return '';
+    const r = s.replace(/İ/g,'i').replace(/I/g,'i').replace(/Ğ/g,'g')
+               .replace(/Ü/g,'u').replace(/Ş/g,'s').replace(/Ö/g,'o').replace(/Ç/g,'c')
+               .toLowerCase()
+               .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
+               .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+               .replace(/[^a-z]/g,'');
+    return ISIM_ALIAS[r] || r;
+}
+
+/* ── Global durum ── */
+let TUM_ILLER   = [];
+let illerById   = {};   // "TR-01" -> il
+let illerByNorm = {};   // normTR(sehir) -> il
+let secilenId   = null; // aktif harita seçimi
+let sirKol      = 'riskSkoru';
+let sirArtan    = false;
+let aktifF      = 'hepsi';
+let polygonSeries = null;
+
+/* ── amCharts 5 başlatma ── */
+am5.ready(function () {
+    const root = am5.Root.new("chartdiv");
+
+    const chart = root.container.children.push(
+        am5map.MapChart.new(root, {
+            wheelY: "none",
+            panX: "none",
+            panY: "none",
+            projection: am5map.geoMercator()
+        })
+    );
+
+    polygonSeries = chart.series.push(
+        am5map.MapPolygonSeries.new(root, {
+            geoJSON: am5geodata_turkeyHigh
+        })
+    );
+
+    /* Şablon ayarları */
+    polygonSeries.mapPolygons.template.setAll({
+        fill: am5.color("#d1d5db"),
+        fillOpacity: 0.88,
+        stroke: am5.color("#ffffff"),
+        strokeWidth: 0.6,
+        interactive: true,
+        cursorOverStyle: "pointer",
+        tooltipText: "{name}"
+    });
+
+    /* Hover state */
+    polygonSeries.mapPolygons.template.states.create("hover", {
+        fillOpacity: 0.65
+    });
+
+    /* Renk adaptörü — veriler geldikten sonra otomatik çalışır */
+    polygonSeries.mapPolygons.template.adapters.add("fill", function (fill, target) {
+        const id = target.dataItem?.dataContext?.id;
+        const nm = target.dataItem?.dataContext?.name;
+        const il = illerById[id] || illerByNorm[normTR(nm)];
+        if (!il) { console.warn('Eşleşmedi:', id, nm); return am5.color("#d1d5db"); }
+        if (il.riskSeviyesi === 'Veri Yok') return am5.color("#d1d5db");
+        return il.riskSeviyesi === 'Yüksek' ? am5.color('#ef4444') :
+               il.riskSeviyesi === 'Orta'   ? am5.color('#f97316') : am5.color('#22c55e');
+    });
+
+    /* Tooltip adaptörü */
+    polygonSeries.mapPolygons.template.adapters.add("tooltipText", function (text, target) {
+        const id = target.dataItem?.dataContext?.id;
+        const il = illerById[id] || illerByNorm[normTR(target.dataItem?.dataContext?.name)];
+        if (!il) return "[bold]{name}[/]\nVeri bekleniyor...";
+        if (il.riskSeviyesi === 'Veri Yok') return `[bold font-size: 13px]${il.sehir}[/]\n⚫ Hava verisi alınamadı`;
+        const pct  = Math.round(il.riskSkoru * 100);
+        const icon = il.riskSeviyesi === 'Yüksek' ? '⛔' : il.riskSeviyesi === 'Orta' ? '⚠️' : '✅';
+        const f    = v => v != null ? Number(v).toFixed(1) : '—';
+        return [
+            `[bold font-size: 13px]${il.sehir}[/]`,
+            `${icon} Risk: [bold]${il.riskSeviyesi}[/] (%${pct})`,
+            `🌡 ${f(il.sicaklikMax)}° / ${f(il.sicaklikMin)}°   💧 %${f(il.nem)}`
+        ].join('\n');
+    });
+
+    /* Tooltip görünümü */
+    polygonSeries.set("tooltip", am5.Tooltip.new(root, {
+        getFillFromSprite: false,
+        background: am5.RoundedRectangle.new(root, {
+            fill: am5.color("#1f2937"),
+            fillOpacity: 0.94,
+            cornerRadiusBL: 9, cornerRadiusBR: 9, cornerRadiusTL: 9, cornerRadiusTR: 9,
+            strokeOpacity: 0
+        })
+    }));
+    const tooltip = polygonSeries.get("tooltip");
+    tooltip.label.setAll({ fill: am5.color("#f9fafb"), fontSize: 12.5, lineHeight: 1.5 });
+
+    /* İl tıklama */
+    let _polyDown = false;
+    polygonSeries.mapPolygons.template.events.on("pointerdown", () => { _polyDown = true; });
+
+    polygonSeries.mapPolygons.template.events.on("click", function (ev) {
+        const id  = ev.target.dataItem?.dataContext?.id;
+        const il  = illerById[id] || illerByNorm[normTR(ev.target.dataItem?.dataContext?.name)];
+        if (!il) return;
+
+        if (secilenId === id) {
+            secimSifirla();
+        } else {
+            secilenId = id;
+            haritaVurgula(id);
+            secilenSeritGoster(il.sehir);
+            tabloYaz(il.sehir);
+        }
+    });
+
+    /* Boş alan tıklama → sıfırla */
+    document.getElementById('chartdiv').addEventListener('pointerdown', function () {
+        const snap = _polyDown;
+        _polyDown = false;
+        setTimeout(function () {
+            if (!snap && secilenId) secimSifirla();
+        }, 20);
+    });
+
+    window._amRoot = root;
+    window._polygonSeries = polygonSeries;
+});
+
+/* ── Harita renk yenileme ── */
+function haritaRenkle() {
+    if (!window._polygonSeries) return;
+    window._polygonSeries.mapPolygons.each(function (p) {
+        p.markDirtyKey("fill");
+    });
+}
+
+function haritaVurgula(selId) {
+    if (!window._polygonSeries) return;
+    window._polygonSeries.mapPolygons.each(function (p) {
+        const id = p.dataItem?.dataContext?.id;
+        p.setAll({
+            fillOpacity: id === selId ? 1 : 0.28,
+            strokeWidth: id === selId ? 2.5 : 0.6,
+            stroke: id === selId ? am5.color("#1f2937") : am5.color("#ffffff")
+        });
+    });
+}
+
+function haritaVurgulamiKaldir() {
+    if (!window._polygonSeries) return;
+    window._polygonSeries.mapPolygons.each(function (p) {
+        p.setAll({ fillOpacity: 0.88, strokeWidth: 0.6, stroke: am5.color("#ffffff") });
+    });
+}
+
+function secimSifirla() {
+    secilenId = null;
+    tabloGenisletildi = false;
+    haritaVurgulamiKaldir();
+    document.getElementById('seciliSerit').classList.remove('goster');
+    tabloYaz();
+}
+
+function secilenSeritGoster(sehir) {
+    document.getElementById('seciliIsim').textContent = sehir;
+    document.getElementById('seciliSerit').classList.add('goster');
+}
+
+/* ── Veri yükleme ── */
+async function veriYukle(taze = false) {
+    const btn = document.getElementById('btnYenile');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Yükleniyor...';
+    document.getElementById('haritaLoading').style.display = 'flex';
+    document.getElementById('tabloBody').innerHTML =
+        '<tr><td colspan="9" class="satir-yok"><i class="fas fa-spinner fa-spin me-2"></i>Veriler çekiliyor…</td></tr>';
+
+    try {
+        const token = localStorage.getItem('token');
+        const url = '/api/SehirRisk/bugday' + (taze ? '?taze=true' : '');
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        TUM_ILLER = data.iller || [];
+
+        /* lookup haritaları oluştur */
+        illerById   = {};
+        illerByNorm = {};
+        TUM_ILLER.forEach(il => {
+            const id = sehirAmId(il.sehir);
+            if (id) illerById[id] = il;
+            illerByNorm[normTR(il.sehir)] = il;
+        });
+
+        const ml = !!data.mlKullanildi;
+        document.getElementById('mlBanner').classList.toggle('goster', !ml);
+        document.getElementById('mlChip').classList.toggle('goster', ml);
+        if (ml) {
+            const now = new Date();
+            document.getElementById('guncellemeZaman').textContent =
+                '· ' + now.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' }) + ' güncellendi';
+        }
+
+        /* Stat kartları */
+        const o = data.ozet;
+        document.getElementById('sY').textContent = o.yuksek;
+        document.getElementById('sO').textContent = o.orta;
+        document.getElementById('sD').textContent = o.dusuk;
+        document.getElementById('sT').textContent = o.toplam;
+
+        /* Özet grafik */
+        const top = o.toplam || 1;
+        const veriYok = o.veriYok || 0;
+        const pctY = +(o.yuksek / top * 100).toFixed(1);
+        const pctO = +(o.orta   / top * 100).toFixed(1);
+        const pctD = +(o.dusuk  / top * 100).toFixed(1);
+        const pctN = +(veriYok  / top * 100).toFixed(1);
+        ringGuncelle('ringFillY', pctY);
+        ringGuncelle('ringFillO', pctO);
+        ringGuncelle('ringFillD', pctD);
+        ringGuncelle('ringFillN', pctN);
+        document.getElementById('ozY').textContent = o.yuksek;
+        document.getElementById('ozO').textContent = o.orta;
+        document.getElementById('ozD').textContent = o.dusuk;
+        document.getElementById('ozN').textContent = veriYok;
+        document.getElementById('ringPctY').textContent = '%' + pctY;
+        document.getElementById('ringPctO').textContent = '%' + pctO;
+        document.getElementById('ringPctD').textContent = '%' + pctD;
+        document.getElementById('ringPctN').textContent = '%' + pctN;
+        document.getElementById('sbY').style.width = pctY + '%';
+        document.getElementById('sbO').style.width = pctO + '%';
+        document.getElementById('sbD').style.width = pctD + '%';
+        document.getElementById('sbN').style.width = pctN + '%';
+
+        /* Haritayı renkle */
+        haritaRenkle();
+
+        /* Tabloyu doldur */
+        tabloYaz();
+
+    } catch (err) {
+        document.getElementById('tabloBody').innerHTML =
+            `<tr><td colspan="9" class="satir-yok" style="color:#ef4444;">
+                <i class="fas fa-triangle-exclamation me-2"></i>Veri alınamadı: ${err.message}
+                <br><br><button class="btn-yenile" onclick="veriYukle(true)">Tekrar Dene</button>
+            </td></tr>`;
+    }
+
+    document.getElementById('haritaLoading').style.display = 'none';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-rotate-right me-2"></i>Yenile';
+}
+
+/* ── Filtre ── */
+let tabloGenisletildi = false;
+
+function tabloSifirlaVeYaz() {
+    tabloGenisletildi = false;
+    tabloYaz();
+}
+
+function filtrele(seviye) {
+    aktifF = seviye;
+    secilenId = null;
+    tabloGenisletildi = false;
+    haritaVurgulamiKaldir();
+    document.getElementById('seciliSerit').classList.remove('goster');
+
+    const ids = { hepsi:'kfHepsi','Yüksek':'kfYuksek',Orta:'kfOrta','Düşük':'kfDusuk' };
+    const cls = { hepsi:'bf-hepsi','Yüksek':'bf-yuksek',Orta:'bf-orta','Düşük':'bf-dusuk' };
+    ['kfHepsi','kfYuksek','kfOrta','kfDusuk'].forEach(id => document.getElementById(id).className = 'btn-f');
+    document.getElementById(ids[seviye]).className = 'btn-f ' + cls[seviye];
+    tabloYaz();
+}
+
+function tabloYaz(ilFiltre) {
+    const ara = document.getElementById('araInput')?.value.toLowerCase() || '';
+
+    let liste = [...TUM_ILLER];
+    if (ilFiltre) {
+        liste = liste.filter(s => s.sehir === ilFiltre);
+    } else {
+        if (aktifF !== 'hepsi') liste = liste.filter(s => s.riskSeviyesi === aktifF);
+        if (ara) liste = liste.filter(s => s.sehir.toLowerCase().includes(ara));
+    }
+
+    liste.sort((a, b) => {
+        const av = a[sirKol] ?? (sirArtan ? Infinity : -Infinity);
+        const bv = b[sirKol] ?? (sirArtan ? Infinity : -Infinity);
+        if (typeof av === 'string') return sirArtan ? av.localeCompare(bv,'tr') : bv.localeCompare(av,'tr');
+        return sirArtan ? av - bv : bv - av;
+    });
+
+    document.getElementById('satirSayisi').textContent = `(${liste.length} il)`;
+    document.getElementById('tabloFooter').textContent =
+        `${liste.length} il · Hava: Open-Meteo · Risk: ` +
+        (document.getElementById('mlChip').classList.contains('goster') ? 'ML modeli (Random Forest)' : 'Kural tabanlı');
+
+    const tbody = document.getElementById('tabloBody');
+    if (liste.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="satir-yok">Eşleşen il bulunamadı.</td></tr>';
+        return;
+    }
+
+    const limit = tabloGenisletildi ? liste.length : 10;
+    const gosterilen = liste.slice(0, limit);
+    const kalan = liste.length - gosterilen.length;
+
+    const f = v => v != null ? Number(v).toFixed(1) : '—';
+    const clsSev = s => s === 'Yüksek' ? 'y' : s === 'Orta' ? 'o' : s === 'Veri Yok' ? 'n' : 'd';
+    const ikonSev = s => s === 'Yüksek' ? '⛔' : s === 'Orta' ? '⚠️' : s === 'Veri Yok' ? '⚫' : '✅';
+
+    let satirlar = gosterilen.map(s => {
+        const c   = clsSev(s.riskSeviyesi);
+        const pct = Math.round(s.riskSkoru * 100);
+        const etken = s.riskEtkenleri[0] || '—';
+        const ecCls = s.riskSeviyesi === 'Veri Yok' ? 'ec ec-n' : etken === 'Risk yok' ? 'ec ec-g' : 'ec ec-r';
+        const seciliCls = (sehirAmId(s.sehir) === secilenId) ? ' il-secili' : '';
+        if (s.riskSeviyesi === 'Veri Yok') {
+            return `<tr class="rk-n${seciliCls}">
+                <td class="td-isim">${s.sehir}</td>
+                <td colspan="6" style="color:#9ca3af;font-style:italic;text-align:center;">Hava verisi alınamadı</td>
+                <td><span class="badge bg-n">⚫ Veri Yok</span></td>
+                <td>—</td>
+            </tr>`;
+        }
+        return `<tr class="rk-${c}${seciliCls}">
+            <td class="td-isim">${s.sehir}</td>
+            <td>${f(s.sicaklikMax)}°</td>
+            <td>${f(s.sicaklikMin)}°</td>
+            <td>${f(s.nem)}%</td>
+            <td>${f(s.yagis)}</td>
+            <td>${f(s.ruzgarHizi)}</td>
+            <td><div class="mini-bar-wrap">
+                <div class="mini-bar-bg"><div class="mini-bar-fill mb-${c}" style="width:${pct}%;"></div></div>
+                <span class="mini-pct">%${pct}</span>
+            </div></td>
+            <td><span class="badge bg-${c}">${ikonSev(s.riskSeviyesi)} ${s.riskSeviyesi}</span></td>
+            <td><span class="${ecCls}">${etken}</span></td>
+        </tr>`;
+    }).join('');
+
+    if (kalan > 0) {
+        satirlar += `<tr><td colspan="9" style="padding:14px;text-align:center;border:none;">
+            <button class="btn-daha-fazla" onclick="tabloGenislet()">
+                <i class="fas fa-chevron-down me-1"></i>${kalan} il daha göster
+            </button>
+        </td></tr>`;
+    }
+
+    tbody.innerHTML = satirlar;
+}
+
+function tabloGenislet() {
+    tabloGenisletildi = true;
+    tabloYaz(secilenId ? illerById[secilenId]?.sehir : undefined);
+}
+
+/* ── Sıralama ── */
+document.querySelectorAll('thead th.siralama').forEach(th => {
+    th.addEventListener('click', () => {
+        const k = th.dataset.k;
+        if (sirKol === k) { sirArtan = !sirArtan; }
+        else { sirKol = k; sirArtan = (k === 'sehir'); }
+        document.querySelectorAll('thead th.siralama').forEach(t => t.classList.remove('sort-asc','sort-desc'));
+        th.classList.add(sirArtan ? 'sort-asc' : 'sort-desc');
+        tabloYaz(secilenId ? illerById[secilenId]?.sehir : undefined);
+    });
+});
+
+/* ── Ring grafik ── */
+function ringGuncelle(id, pct) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const offset = 251.3 * (1 - pct / 100);
+    el.style.strokeDashoffset = offset;
+}
+
+/* ── Başlat ── */
+veriYukle();
+</script>
+}

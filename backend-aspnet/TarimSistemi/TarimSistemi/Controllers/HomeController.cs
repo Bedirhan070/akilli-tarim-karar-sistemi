@@ -73,6 +73,13 @@ namespace TarimSistemi.Controllers
             return View();
         }
 
+        // GET: /Home/SehirRiskAnalizi
+        [Authorize]
+        public IActionResult SehirRiskAnalizi()
+        {
+            return View();
+        }
+
         // GET: /Home/SifreEmailOnay?token=... (şifre değiştirme onayı — hâlâ link tabanlı)
         public async Task<IActionResult> SifreEmailOnay(string? token)
         {
