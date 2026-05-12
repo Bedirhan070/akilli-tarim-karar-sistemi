@@ -1,0 +1,1165 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║          AKILLI TARIM KARAR SİSTEMİ — TAM PROJE BRİFİNGİ                  ║
+║      (Rapor/Sunum Hazırlayan Yapay Zeka için Eksiksiz Kaynak Belge)        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Bu dosya; projeyi daha önce hiç görmeyen bir yapay zekanın projeye tam olarak
+hâkim olabilmesi için gereken tüm bilgileri tek belgede toplamak amacıyla
+hazırlanmıştır. Teknik rapor ve sunum hazırlığında birincil kaynak olarak
+kullanılabilir.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 1 — PROJE KİMLİĞİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Proje Adı   : Akıllı Tarım Karar Sistemi
+Tür         : Full-Stack Web Uygulaması + Makine Öğrenmesi
+Kurum       : Bitlis Eren Üniversitesi
+Öğrenci     : 23080410005@ogrenci.beu.edu.tr
+Geliştirme  : C# / ASP.NET Core 8 (backend) + Python / FastAPI (ML)
+Veritabanı  : Microsoft SQL Server
+Tarih       : 2026
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 2 — PROBLEM VE MOTIVASYON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEM:
+Türkiye'deki çiftçilerin büyük çoğunluğu tarımsal kararlarını (ekim zamanı,
+sulama, ilaçlama, hasat) deneyime ve geleneksel yöntemlere dayalı olarak
+alır. Hava koşullarındaki ani değişiklikler, don riski, aşırı sıcak, yoğun
+yağış gibi etkenler ürün kayıplarına yol açmaktadır. Çiftçilerin büyük
+bölümünün gelişmiş meteoroloji sistemlerine ya da tarım danışmanlarına erişimi
+yoktur.
+
+ÇÖZÜM:
+GPS koordinatlarına dayalı, anlık hava verisi kullanan ve makine öğrenmesi
+ile risk analizi yapan, çiftçiye Türkçe olarak somut tavsiye veren, ayrıca
+Telegram üzerinden gerçek zamanlı uyarı gönderen bir karar destek sistemi.
+
+HEDEF KİTLE:
+- Orta/küçük ölçekli tarım işletmeleri
+- Birden fazla tarlası olan çiftçiler
+- Tarımsal riski izlemek isteyen kooperatifler ve çiftlik yöneticileri
+
+PROJEYE KATTIĞI DEĞER:
+1. Çiftçi tarla başına gitmeden tarlasının risk durumunu öğrenir.
+2. Makine öğrenmesi sayesinde sadece "hava sıcak" yerine "bu gün bu ürün
+   için risk kritik" bilgisi verilir.
+3. Telegram entegrasyonu ile çiftçi her sabah 08:00'de tüm tarlalarının
+   özetini alır; kritik durumlarda anında uyarı gelir.
+4. Türkiye'nin 81 ili için buğday risk haritası, ülke genelinde tarımsal
+   risk dağılımını görselleştirir.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 3 — SİSTEM MİMARİSİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sistem iki bağımsız uygulama katmanından oluşur:
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                     KULLANICI (WEB TARAYICI)                        │
+│                                                                     │
+│   Razor View sayfaları (HTML/CSS/JS)                                │
+│   ├── Bootstrap 5 — duyarlı (responsive) tasarım                   │
+│   ├── Leaflet.js — interaktif Türkiye haritası                      │
+│   └── Fetch API — sunucuyla AJAX haberleşmesi                       │
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │ HTTP (JWT Bearer Token)
+┌───────────────────────────▼─────────────────────────────────────────┐
+│                  ASP.NET CORE 8 — ANA UYGULAMA                      │
+│                     (C#, .NET 8, MVC + REST API)                    │
+│                                                                     │
+│  ┌─ CONTROLLER KATMANI ──────────────────────────────────────────┐  │
+│  │  HomeController       → Razor sayfa yönlendirmeleri           │  │
+│  │  AuthController       → Kayıt, Giriş, JWT, Telegram bağlama  │  │
+│  │  AnalizController     → Anlık risk + 7 günlük tahmin          │  │
+│  │  LokasyonController   → Tarla CRUD işlemleri                  │  │
+│  │  UrunController       → Ürün bilgileri                        │  │
+│  │  OneriController      → Geçmiş analizler                      │  │
+│  │  SehirRiskController  → Türkiye 81 il risk haritası           │  │
+│  │  SistemController     → ML sağlık durumu                      │  │
+│  │  TelegramWebhookController → Bot komut işleme                 │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ┌─ SERVİS KATMANI ──────────────────────────────────────────────┐  │
+│  │  AuthService          → JWT üretme, BCrypt şifre, token akışı │  │
+│  │  HavaService          → Open-Meteo API + SQL cache            │  │
+│  │  MlService            → FastAPI'ye HTTP proxy                  │  │
+│  │  TelegramService      → Telegram Bot API                      │  │
+│  │  GunlukBildirimServisi→ BackgroundService (sabah 08:00)       │  │
+│  │  SmtpEmailGonderici   → E-posta gönderme                      │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ┌─ VERİ KATMANI ────────────────────────────────────────────────┐  │
+│  │  TarimDbContext (EF Core 9)                                    │  │
+│  │  ┌─────────┐ ┌──────────┐ ┌───────────┐ ┌──────────────────┐ │  │
+│  │  │Kullanici│ │ Lokasyon │ │ HavaVerisi│ │  UrunBilgisi     │ │  │
+│  │  └─────────┘ └──────────┘ └───────────┘ └──────────────────┘ │  │
+│  │  ┌─────────┐ ┌───────────────────┐                           │  │
+│  │  │  Oneri  │ │KullaniciGeriBildir│                           │  │
+│  │  └─────────┘ └───────────────────┘                           │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└──────────┬──────────────────────────┬────────────────────────────────┘
+           │                          │
+    SQL Server DB           HTTP (localhost:8000)
+    (EF Core ORM)                     │
+                        ┌─────────────▼──────────────────────────┐
+                        │     PYTHON FastAPI — ML SERVİSİ        │
+                        │                                        │
+                        │  /anomaly  → Isolation Forest          │
+                        │  /predict  → Random Forest             │
+                        │  /forecast → LSTM (Keras)              │
+                        │                                        │
+                        │  Modeller (belleğe yüklü):             │
+                        │    isolation_forest.pkl                │
+                        │    random_forest.pkl                   │
+                        │    scaler.pkl                          │
+                        │    label_encoder.pkl                   │
+                        │    lstm_model.keras                    │
+                        │    lstm_scaler.pkl                     │
+                        └────────────────────────────────────────┘
+
+HARICI SERVİS BAĞLANTILARI:
+  ┌─────────────────────────────────────────────────────────┐
+  │  Open-Meteo API  → Gerçek zamanlı & tahmin hava verisi  │
+  │  Telegram Bot API → Bildirim gönderme + webhook         │
+  │  SMTP Sunucusu   → E-posta doğrulama ve bildirim        │
+  └─────────────────────────────────────────────────────────┘
+
+MİMARİ KARAR — NEDEN 2 AYRI UYGULAMA?
+Python kütüphaneleri (scikit-learn, TensorFlow/Keras) C# ekosisteminde
+doğrudan çalışmaz. İki seçenek vardı: ML.NET (C# içi ML) veya ayrı Python
+süreci. ML.NET mevcut Keras LSTM modelini desteklemez ve scikit-learn
+modellerini doğrudan yükleyemez. Bu nedenle Python ML servisi ayrı bir
+FastAPI uygulaması olarak geliştirilmiş, C# tarafı HTTP üzerinden haberleşir.
+Bu yapı aynı zamanda ML servisi down olduğunda sistemin çökmemesini sağlar:
+ML yanıt vermediğinde kural tabanlı hesap otomatik devreye girer.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 4 — KULLANILAN TEKNOLOJİLER VE SEÇİM GEREKÇELERİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BACKEND TEKNOLOJİLERİ:
+
+  ASP.NET Core 8 / C#
+  Gerekçe: Güçlü Dependency Injection desteği, yerleşik JWT authentication
+  middleware, Entity Framework Core ile veritabanı entegrasyonu, BackgroundService
+  ile arka plan görevleri (günlük bildirim), Swagger/OpenAPI desteği.
+
+  Entity Framework Core 9 (Code-First)
+  Gerekçe: Veritabanı şemasını C# sınıflarından otomatik oluşturur.
+  Migration sistemi ile şema değişiklikleri sürüm kontrolünde takip edilir.
+  Parametrik sorgular sayesinde SQL Injection'a karşı doğal koruma sağlar.
+
+  BCrypt.Net-Next (v4.1.0)
+  Gerekçe: Sektör standardı şifre hash algoritması. Her şifre için rastgele
+  salt üretir; aynı şifrenin hash'i her seferinde farklı görünür. Kasıtlı
+  olarak yavaştır — brute-force saldırılarını zorlaştırır.
+
+  JWT (JSON Web Token) — Microsoft.AspNetCore.Authentication.JwtBearer
+  Gerekçe: Stateless kimlik doğrulama. Sunucu oturum bilgisi saklamaz;
+  her istek kendi içinde doğrulanır. Mobil ve API istemcileriyle uyumlu.
+
+  Swashbuckle (Swagger) v6.5.0
+  Gerekçe: Tüm API endpoint'leri otomatik belgelenir. Geliştirme sırasında
+  tarayıcı üzerinden test yapılabilir. Sadece development ortamında aktif.
+
+  IMemoryCache (ASP.NET Core yerleşik)
+  Gerekçe: 81 il için hava + risk verisi her istekte yeniden çekilmek yerine
+  30 dakika bellekte saklanır. Hem Open-Meteo yük azaltımı hem hız kazanımı.
+
+ML TEKNOLOJİLERİ:
+
+  Python + FastAPI
+  Gerekçe: Python ML ekosistemi (scikit-learn, TensorFlow) için standart dil.
+  FastAPI, Flask/Django'dan çok daha hızlı; async desteği var; Pydantic ile
+  otomatik veri doğrulama; yerleşik Swagger UI.
+
+  scikit-learn (Isolation Forest + Random Forest + StandardScaler)
+  Gerekçe: Python ML kütüphanelerinin endüstri standardı. joblib ile model
+  serileştirme kolaydır (.pkl dosyaları). Geniş dokümantasyon ve topluluk.
+
+  TensorFlow / Keras (LSTM)
+  Gerekçe: Zaman serisi tahminleri için LSTM (Long Short-Term Memory) en
+  yaygın kullanılan derin öğrenme mimarisidir. Keras ile model tanımı ve
+  eğitimi oldukça kolaydır. .keras formatı modern ve taşınabilirdir.
+
+  pydantic (FastAPI ile birlikte)
+  Gerekçe: İstek/yanıt modellerini tip güvenli şekilde tanımlar. Yanlış veri
+  tipinde istek gelirse otomatik 422 döner, manuel doğrulama kodu yazmak gerekmez.
+
+FRONTEND TEKNOLOJİLERİ:
+
+  Razor Views (ASP.NET Core MVC şablon motoru)
+  Gerekçe: Sunucu taraflı render. İlk sayfa yüklemesinde C# ile HTML üretilir;
+  sonraki etkileşimler JS Fetch API ile yapılır. Ayrı bir SPA framework
+  (React, Vue) gerekmez; proje tek bir solution içinde kalır.
+
+  Bootstrap 5
+  Gerekçe: Grid sistemi ile kolayca duyarlı (mobil uyumlu) tasarım.
+  Hazır bileşenler (modal, card, navbar, tablo, form) geliştirme hızlandırır.
+
+  Leaflet.js
+  Gerekçe: Açık kaynaklı, ücretsiz interaktif harita kütüphanesi.
+  Google Maps API anahtarı gerektirmez. GeoJSON desteği ile Türkiye
+  il/ilçe sınırları çizilebilir. Kullanıcı tıkla-koordinat-al akışı mümkün.
+
+DIŞ API'LAR:
+
+  Open-Meteo (open-meteo.com)
+  Gerekçe: Tamamen ücretsiz, kayıt gerektirmez, API anahtarı yok.
+  GPS koordinatına göre gerçek zamanlı hava verisi verir. Günlük ve saatlik
+  veri ayrımı yapılabilir. 7 günlük tahmin dahil. Yüksek güvenilirlik.
+
+  Telegram Bot API
+  Gerekçe: Türkiye'de yaygın kullanılıyor. Ücretsiz. Metin, HTML formatlı
+  mesaj gönderimi kolay. Webhook desteği ile sunucuya push bildirim gelir.
+  Çiftçilerin akıllı telefon kullanım alışkanlığıyla uyumlu.
+
+  SMTP E-posta
+  Gerekçe: E-posta doğrulama en güvenilir hesap onay yöntemidir.
+  Herhangi bir SMTP sağlayıcısıyla çalışır (Gmail, Outlook, özel SMTP).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 5 — VERİTABANI TASARIMI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6 ana tablo vardır. İlişki diyagramı:
+
+  Kullanici (1) ──< Lokasyon (N)
+  Kullanici (1) ──< Oneri (N)
+  Lokasyon  (1) ──< HavaVerisi (N)
+  Lokasyon  (1) ──< Oneri (N)
+  UrunBilgisi (1) ──< Lokasyon (N)   [null olabilir]
+  UrunBilgisi (1) ──< Oneri (N)
+
+TABLO: Kullanici
+────────────────────────────────────────────────────
+KullaniciId        int, PK, auto-increment
+AdSoyad            nvarchar, zorunlu
+Email              nvarchar, zorunlu, küçük harf
+SifreHash          nvarchar, BCrypt (60 karakter, düz metin ASLA saklanmaz)
+Telefon            nvarchar, opsiyonel
+KayitTarihi        datetime2
+SonGirisTarihi     datetime2, null
+EmailOnayli        bit (varsayılan: false)
+EmailOnayToken     nvarchar, null (6 haneli kod)
+EmailOnayTokenSon  datetime2, null (60 saniye geçerli)
+BekleyenSifreHash  nvarchar, null (şifre değişikliği onay bekliyor)
+SifreOnayToken     nvarchar, null (URL-safe, 256 bit, 1 saat geçerli)
+SifreOnayTokenSon  datetime2, null
+SifreSifirlamaToken     nvarchar, null (6 haneli kod, 60 saniye)
+SifreSifirlamaTokenSon  datetime2, null
+TelegramChatId          nvarchar, null (Telegram sohbet kimliği)
+TelegramBaglamaToken    nvarchar, null (30 dakika geçerli deep-link)
+TelegramBaglamaTokenSon datetime2, null
+
+TABLO: Lokasyon
+────────────────────────────────────────────────────
+LokasyonId    int, PK
+KullaniciId   int, FK → Kullanici (cascade delete yok)
+Isim          nvarchar, null (tarla adı)
+Sehir         nvarchar, zorunlu
+Ilce          nvarchar, null
+Enlem         decimal(9,6)  — GPS enlem (örn: 38.400000)
+Boylam        decimal(9,6)  — GPS boylam (örn: 42.110000)
+KayitTarihi   datetime2
+UrunId        int, FK → UrunBilgisi, null (OnDelete: SetNull)
+
+TABLO: HavaVerisi
+────────────────────────────────────────────────────
+HavaVeriId    int, PK
+LokasyonId    int, FK → Lokasyon
+Tarih         date
+SicaklikMax   decimal(5,2), null (°C)
+SicaklikMin   decimal(5,2), null (°C)
+Nem           decimal(5,2), null (%, saatlik ortalaması)
+Yagis         decimal(7,2), null (mm, günlük toplam)
+RuzgarHizi    decimal(6,2), null (km/s, günlük maksimum)
+ApiKaynagi    nvarchar, null ("Open-Meteo")
+AnomaliDurumu bit (false = normal; true = ML'den geçmemiş/anormal işaretli)
+KayitZamani   datetime2
+UNIQUE INDEX: (LokasyonId, Tarih) — aynı lokasyon için günde 1 kayıt
+
+TABLO: UrunBilgisi (seed verisi ile başlangıçta doldurulur)
+────────────────────────────────────────────────────
+UrunId           int, PK
+UrunAdi          nvarchar
+IdealSicaklikMax decimal(5,2), null (°C — ML/kural karşılaştırması için)
+IdealSicaklikMin decimal(5,2), null
+IdealNemMax      decimal(5,2), null (%)
+IdealNemMin      decimal(5,2), null
+EkimAylari       nvarchar, null ("10,11" gibi virgüllü ay numaraları)
+HasatSuresiGun   int, null
+Aciklama         nvarchar, null
+
+Başlangıç ürünleri (DbInitializer):
+  • Buğday:       5–28°C,  %40–75 nem,  ekim: Ekim-Kasım,   hasat: 240 gün
+  • Mısır:        10–35°C, %50–85 nem,  ekim: Nisan-Mayıs,  hasat: 120 gün
+  • Ayçiçeği:     8–32°C,  %45–80 nem,  ekim: Mart-Nisan,   hasat: 110 gün
+  • Pamuk:        15–38°C, %45–70 nem,  ekim: Nisan-Mayıs,  hasat: 150 gün
+  • Arpa:         4–26°C,  %40–75 nem,  ekim: Ekim-Kasım,   hasat: 220 gün
+  • Domates(Sera):12–30°C, %55–85 nem,  ekim: Şubat-Nisan,  hasat: 90 gün
+
+TABLO: Oneri
+────────────────────────────────────────────────────
+OneriId          int, PK
+KullaniciId      int, FK
+LokasyonId       int, FK
+UrunId           int, FK, null
+RiskSkoru        decimal(5,2) — 0.00 ile 1.00 arası
+RiskTipi         nvarchar ("Kritik" / "Uyarı" / "Güvenli")
+TavsiyeMetni     nvarchar(max) — üretilen Türkçe tarım tavsiyesi
+OlusturulmaZamani datetime2
+
+TABLO: KullaniciGeriBildirim
+────────────────────────────────────────────────────
+Kullanıcıların öneri kalitesine dair geri bildirimleri saklanır.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 6 — MAKİNE ÖĞRENMESİ: MODELLER, EĞİTİM VE ÇALIŞMA MANTIĞI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GİRİŞ VERİSİ (5 özellik — tüm modeller için aynı):
+  1. max_sicaklik  — günlük maksimum sıcaklık (°C)
+  2. min_sicaklik  — günlük minimum sıcaklık (°C)
+  3. yagis         — günlük yağış toplamı (mm)
+  4. ruzgar_hizi   — günlük maksimum rüzgar hızı (km/s)
+  5. nem           — günlük ortalama bağıl nem (%)
+
+ÖN İŞLEME — StandardScaler (scaler.pkl):
+Her model çalıştırılmadan önce bu scaler uygulanır. Eğitim verisinin
+istatistiksel özelliklerini (ortalama, standart sapma) kaydeder ve yeni
+veriyi sıfır ortalama/birim varyansa normalize eder. Bu olmadan farklı
+ölçekteki özellikler (örneğin sıcaklık 20–40 aralığında, nem 0–100 aralığında)
+modeli yanlı hale getirir.
+
+─────────────────────────────────────────────────
+MODEL 1: Isolation Forest — Anomali Tespiti
+─────────────────────────────────────────────────
+Endpoint: POST /anomaly
+Tür: Gözetimsiz öğrenme (unsupervised)
+Dosya: isolation_forest.pkl
+
+Nasıl çalışır:
+Isolation Forest, "anormal veri noktaları normal veriden daha az bölme ile
+izole edilebilir" prensibine dayanır. Rastgele ağaçlar oluşturur ve her
+veri noktasını ayırt etmek için kaç bölme gerektiğini sayar.
+  • Bir noktayı izole etmek az bölme gerektiriyorsa → anormal (outlier)
+  • Çok bölme gerektiriyorsa → normal (inlier)
+
+Çıktı JSON:
+{
+  "durum":     "normal" veya "anomali",
+  "skor":      ondalık sayı (negatife gidildikçe daha anormal, örn: -0.15),
+  "guvenilir": true/false,
+  "mesaj":     "Veri normal." veya "Anormal veri tespit edildi!"
+}
+
+Tarımsal anlamı:
+Belirli bir coğrafya ve mevsim için "bu kadar sıcaklık, nem ve yağış
+kombinasyonu beklenen aralıkta mı?" sorusunu yanıtlar. Risk skoru düşük
+görünse bile eğer hava koşulları o bölge için alışılmadık ise uyarır.
+Örnek: Ağustos'ta Güneydoğu Anadolu'da -5°C → Isolation Forest HEMEN anomali
+olarak işaretler, çünkü bu değer eğitim verisinin çok dışındadır.
+
+─────────────────────────────────────────────────
+MODEL 2: Random Forest — Risk Sınıflandırma
+─────────────────────────────────────────────────
+Endpoint: POST /predict
+Tür: Gözetimli öğrenme sınıflandırıcısı (supervised classification)
+Dosya: random_forest.pkl + label_encoder.pkl
+
+Sınıflar (label_encoder.classes_):
+  • "güvenli"       → tarımsal faaliyet için uygun koşullar
+  • "riskli"        → dikkatli olunması gereken koşullar
+  • "uygun_degil"   → tarımsal faaliyetin ertelenmesi gereken koşullar
+
+Nasıl çalışır:
+Onlarca bağımsız karar ağacı eğitilir. Her ağaç:
+  a) Eğitim verisinin rastgele bir alt kümesi ile eğitilir (bootstrap)
+  b) Her bölme noktasında rastgele özellik alt kümesi kullanılır
+Son tahmin tüm ağaçların oylama (majority vote) sonucudur. Bu yaklaşım
+tek bir karar ağacının ezberlemesini (overfitting) önler.
+
+Risk skoru hesabı:
+  risk_skoru = P("riskli") + P("uygun_degil")
+  yani modelin "kötü" olasılığı — 0 ile 1 arasında.
+
+Seviye belirleme:
+  risk_skoru > 0.70  → "KRİTİK"  (kırmızı)
+  risk_skoru > 0.40  → "ORTA"    (sarı)
+  risk_skoru ≤ 0.40  → "GÜVENLİ" (yeşil)
+
+Çıktı JSON:
+{
+  "sinif":       "güvenli",
+  "risk_skoru":  0.22,
+  "seviye":      "GUVENLI",
+  "renk":        "yesil",
+  "olasiliklar": {"güvenli": 0.78, "riskli": 0.10, "uygun_degil": 0.12}
+}
+
+─────────────────────────────────────────────────
+MODEL 3: LSTM — Zaman Serisi Tahmini
+─────────────────────────────────────────────────
+Endpoint: POST /forecast
+Tür: Derin öğrenme, yinelemeli sinir ağı
+Dosya: lstm_model.keras + lstm_scaler.pkl
+
+Giriş formatı: 30 günlük geçmiş veri, her gün 4 değer
+  [[max_sic1, min_sic1, yagis1, ruzgar1],
+   [max_sic2, min_sic2, yagis2, ruzgar2],
+   ...  (30 satır)]
+
+Nasıl çalışır:
+LSTM (Long Short-Term Memory) özellikle zaman serisi tahmini için
+tasarlanmış bir sinir ağı mimarisidir. Klasik RNN'lerin "uzak geçmişi
+unutma" sorununu çözen "bellek kapısı" mekanizması içerir.
+Modelin temel mantığı: Geçmiş 30 günün sıcaklık, yağış ve rüzgar
+kalıplarına bakarak bir sonraki günün maksimum sıcaklığını tahmin et.
+
+Otoregresif tahmin (sliding window):
+Her tahmin bir sonraki günün girdisi olarak kullanılır:
+  Adım 1: [gün1..gün30] → gün31 sıcaklığı tahmin et
+  Adım 2: [gün2..gün31] → gün32 sıcaklığı tahmin et
+  ...  (tahmin_gun sayısı kadar tekrar)
+
+Normalizasyon: lstm_scaler.pkl, 30×4 matrisi normalize eder.
+Çıktı ters dönüşüm: lstmscaler.inverse_transform ile gerçek °C değerine.
+
+Not: LSTM modeli Bitlis ili verisiyle eğitilmiştir; çıktıda "sehir: Bitlis"
+döner. İleride farklı iller için yeniden eğitim planlanabilir.
+
+Çıktı JSON:
+{
+  "sehir": "Bitlis",
+  "tahmin_gun": 7,
+  "max_sicaklik_tahmini": [
+    {"gun": 1, "sicaklik": 24.3},
+    {"gun": 2, "sicaklik": 25.7},
+    ...
+  ]
+}
+
+─────────────────────────────────────────────────
+KURAL TABANLI FALLBACK (ML kapalıysa devreye girer)
+─────────────────────────────────────────────────
+ML servisi yanıt vermezse C# tarafında kural tabanlı risk hesabı çalışır.
+Bu "graceful degradation" prensibidir — sistem hiç yanıt vermemek yerine
+daha basit ama çalışan bir yanıt üretir.
+
+Kural eşikleri:
+  Sıcaklık min < 2°C     → +0.50 risk (don tehlikesi)
+  Sıcaklık max > 38°C    → +0.30 risk (kavurucu sıcak)
+  Yağış > 30 mm          → +0.25 risk (yoğun yağış)
+  Nem < %30              → +0.20 risk (aşırı kuru)
+  Rüzgar > 60 km/s       → +0.20 risk (kuvvetli rüzgar)
+  Ürün için fazla sıcak  → +0.22 risk
+  Ürün için fazla soğuk  → +0.20 risk
+  Ürün için düşük nem    → +0.15 risk
+  Ürün için yüksek nem   → +0.12 risk
+  Ekim ayı değil         → +0.08 risk
+  Toplam: min(hesaplanan, 1.0) ile sınırlandırılır
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 7 — BACKEND ↔ ML SERVİSİ İLETİŞİMİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+İLETİŞİM PROTOKOLÜ: HTTP/REST + JSON
+
+C# (MlService.cs) FastAPI'ye HTTP POST atar:
+  POST http://localhost:8000/predict   → risk tahmini
+  POST http://localhost:8000/anomaly   → anomali tespiti
+  GET  http://localhost:8000/          → sağlık kontrolü
+
+Örnek istek gövdesi (her iki endpoint için aynı format):
+  {
+    "max_sicaklik": 24.0,
+    "min_sicaklik": 8.0,
+    "yagis":        0.0,
+    "ruzgar_hizi":  15.0,
+    "nem":          52.0
+  }
+
+Timeout: 10 saniye (Program.cs'de HttpClient konfigürasyonu)
+Hata durumu: Exception yakalanır → kural tabanlı hesap devreye girer
+
+NEDEN HTTP?   (alternatif karşılaştırması)
+─────────────────────────────────────────
+  HTTP/REST (seçilen):
+  + İki process tamamen bağımsız
+  + ML servisi down olsa C# çalışmaya devam eder
+  + FastAPI'nin kendi Swagger UI'ı ile ML ayrı test edilebilir
+  + İleride ML servisi başka sunucuya taşınabilir (sadece URL değişir)
+  + Timeout ve retry politikaları kolay uygulanır
+  - Her analiz için ~1-5 ms loopback gecikmesi (ihmal edilebilir)
+
+  ML.NET (alternatif, seçilmedi):
+  - scikit-learn Random Forest ve Keras LSTM modellerini desteklemez
+  - Modelleri yeniden eğitmek gerekirdi
+  - Python kütüphanelerindeki esneklik kaybedilir
+
+  gRPC (alternatif, seçilmedi):
+  - HTTP'ye göre daha hızlı ikili protokol
+  - Bu ölçekte performans farkı önemsiz
+  - Protobuf şema tanımı ek karmaşıklık getirir
+
+  Python.NET / process spawn (alternatif, seçilmedi):
+  - Python GIL sorunu
+  - Deployment çok karmaşık
+
+KONFIGÜRASYON:
+  appsettings.json → "FastApi": { "BaseUrl": "http://localhost:8000" }
+  Farklı ortam için sadece bu URL değiştirilir.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 8 — GÜVENLİK MİMARİSİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Proje katmanlı güvenlik (defense in depth) yaklaşımını benimser:
+
+1. KİMLİK DOĞRULAMA — JWT + Cookie Dual Mode
+   ┌──────────────────────────────────────────────────────────────┐
+   │ API Endpoint'leri: Authorization: Bearer {token} header      │
+   │ MVC Views:         tarim_token adlı HTTP Cookie              │
+   │ Tek middleware yapılandırması her iki kanalı da destekler.   │
+   └──────────────────────────────────────────────────────────────┘
+   JWT parametreleri:
+     Algoritma : HMAC-SHA256 (simetrik, anahtar appsettings'de)
+     Süre      : 1 saat
+     İçerik    : KullaniciId, Email, AdSoyad claim'leri
+     Doğrulama : Issuer + Audience + Lifetime + IssuerSigningKey
+
+   401 davranışı:
+     /api/* yolları → JSON 401 Unauthorized
+     Diğer yollar   → /Home/Login'e yönlendirme (UX için)
+
+2. YETKİLENDİRME — Kullanıcı İzolasyonu
+   Her veri erişiminde JWT'den alınan KullaniciId sorgulara eklenir:
+     WHERE LokasyonId = X AND KullaniciId = {jwtUserId}
+   Başkasının verisine erişmeye çalışan kullanıcı 404 alır.
+   Bu, IDOR (Insecure Direct Object Reference) saldırısını önler.
+
+3. ŞİFRE GÜVENLİĞİ — BCrypt
+   Düz metin şifre veritabanında ASLA saklanmaz.
+   BCrypt özellikleri:
+     • Her hash için kriptografik rastgele salt üretilir
+     • Rainbow table saldırısını imkânsız kılar
+     • Kasıtlı yavaş (cost factor) → brute-force zorlaşır
+     • Sabit zamanlı karşılaştırma → timing attack önlenir
+
+4. E-POSTA ONAY SİSTEMİ — 2 Aşamalı Doğrulama
+   Kayıt: E-posta onaylanmadan hesap kullanılamaz (EmailOnayli=false)
+   Şifre değişikliği 2 aşamalı güvenlik akışı:
+     Aşama 1: Yeni şifre "BekleyenSifreHash" alanına yazılır
+              (henüz aktif değil, eski şifre geçerli)
+     Aşama 2: E-postadaki onay linkine tıklanınca şifre değişir
+              Başkası hesaba girse bile şifre değiştiremez
+
+5. TOKEN GÜVENLİĞİ — Farklı Kullanım Senaryolarına Uygun
+   ┌──────────────────────┬──────────────────────────────┬──────────┐
+   │ Token Türü           │ Oluşturma                    │ Süre     │
+   ├──────────────────────┼──────────────────────────────┼──────────┤
+   │ E-posta doğrulama    │ Random.Next(100000,999999)   │ 60 sn    │
+   │ Şifre sıfırlama      │ Random.Next(100000,999999)   │ 60 sn    │
+   │ Şifre onay linki     │ RandomNumberGenerator 256bit  │ 1 saat   │
+   │ Telegram bağlama     │ RandomNumberGenerator 256bit  │ 30 dk    │
+   └──────────────────────┴──────────────────────────────┴──────────┘
+   6 haneli kod: 1.000.000 olasılık × 60 sn süre = brute-force pratiksiz
+   256 bit URL token: 2^256 olasılık = kriptografik güvenlik
+
+6. SQL INJECTION KORUMASI — Entity Framework Core
+   Tüm sorgular EF Core parametrik sorgu olarak çalışır.
+   Ham SQL string birleştirme yapılmamıştır.
+   EF Core tüm değerleri SQL parametresi olarak iletir.
+
+7. TELEGRAM WEBHOOK GÜVENLİĞİ
+   Her gelen webhook isteği X-Telegram-Bot-Api-Secret-Token header'ı ile
+   doğrulanır. Token eşleşmezse 403 Forbidden döner.
+   Sahte webhook isteği saldırısını önler.
+
+8. API RATE LIMITING — SemaphoreSlim
+   81 il analizi için eş zamanlı istek sınırları:
+     Open-Meteo: Maks 15 eş zamanlı istek
+     ML Servisi: Maks 10 eş zamanlı istek
+   API sağlayıcısının rate limit'ini aşmaz; servisi aşırı yüklemez.
+
+9. SWAGGER KORUMASI
+   Swagger UI yalnızca development ortamında aktif.
+   Üretimde API şeması dışarıya açılmaz.
+
+10. HSTS (HTTP Strict Transport Security)
+    Üretim ortamında HSTS header'ı gönderilir.
+    Tarayıcı her zaman HTTPS kullanmak zorunda kalır.
+
+11. TELEGRAM BAĞLAMA — Tek Kullanımlık Token
+    Kullanıcı Telegram hesabını bağladıktan sonra token veritabanından
+    hemen temizlenir. Aynı token tekrar kullanılamaz.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 9 — UYGULAMA ÖZELLİKLERİ (Kullanıcı Perspektifinden)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ÖZELLİK 1: KULLANICI YÖNETİMİ
+  • E-posta ile kayıt (6 haneli onay kodu, 60 sn geçerli)
+  • Güvenli giriş (BCrypt doğrulama, JWT token)
+  • Profil güncelleme (ad, telefon)
+  • Şifre değişikliği (2 aşamalı e-posta onay akışı)
+  • Şifremi Unuttum (6 haneli sıfırlama kodu)
+
+ÖZELLİK 2: TARLA YÖNETİMİ (Tarlalarım sayfası)
+  • İnteraktif Leaflet haritasından tarla konumu seçme
+  • Türkiye il/ilçe adı otomatik algılama
+  • GPS koordinatları otomatik doldurulma
+  • Tarla ekleme, düzenleme, silme
+  • Her tarlaya ürün atama (Buğday, Mısır, Ayçiçeği, Pamuk, Arpa, Domates)
+
+ÖZELLİK 3: ANLIK RİSK ANALİZİ (Dashboard)
+  • Seçili tarla için anlık Open-Meteo hava verisi çekme
+  • Random Forest ile risk sınıflandırması (Kritik/Uyarı/Güvenli)
+  • Isolation Forest ile anomali tespiti
+  • Risk skoru (0–100% görsel gösterge)
+  • Risk etkenleri listesi (her etken için açıklama)
+  • Türkçe tarım tavsiyesi (ürüne ve hava koşullarına özel)
+  • 5 günlük yağış tahmini + sulama önerisi
+  • ML mi yoksa kural tabanlı mı hesaplandığı bilgisi
+  • "Taze veri al" seçeneği (cache temizleme)
+
+ÖZELLİK 4: 7 GÜNLÜK TAHMİN (Dashboard)
+  • Her gün için ayrı risk skoru (Random Forest)
+  • Günlük hava özeti (sıcaklık aralığı, nem, yağış, rüzgar)
+  • Risk seviyesi renk kodlaması
+  • Tablo formatında görüntüleme
+
+ÖZELLİK 5: ANALİZ GEÇMİŞİ
+  • Son 30 güne ait tüm analizler tarihsel sırayla
+  • Her analiz için: tarih, lokasyon, ürün, risk skoru, tavsiye
+  • Analiz silme
+
+ÖZELLİK 6: 81 İL BUĞDAY RİSK HARİTASI
+  • Türkiye haritasında tüm iller risk rengine göre boyanır
+  • Yeşil: Düşük risk / Sarı: Orta risk / Kırmızı: Yüksek risk
+  • Her il için hava değerleri ve risk etkenleri tooltip'i
+  • Risk özet tablosu (kaç il yüksek/orta/düşük risk)
+  • ML ile mi kural tabanlı mı hesaplandığı etiketi
+  • 30 dakika önbellek; "Taze veri" butonu ile güncelleme
+
+ÖZELLİK 7: TELEGRAM BİLDİRİMLERİ (Hesabım sayfası)
+  • Telegram bağlama: deep-link ile QR/link akışı (30 dk geçerli)
+  • Test mesajı gönderme
+  • Günlük raporu şimdi test etme
+  • Her sabah 08:00 otomatik tarım raporu
+  • Anlık kritik risk bildirimi (Kritik veya anomali tespitinde)
+
+ÖZELLİK 8: SİSTEM DURUMU
+  • ML servisinin aktif olup olmadığı bilgisi
+  • Dashboard'da ML aktif/pasif göstergesi
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 10 — UÇTAN UCA VERİ AKIŞI (Örnek Senaryo)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Senaryo: Bitlis'te buğday tarlası olan kullanıcı anlık analiz istiyor.
+
+  [1] Kullanıcı Dashboard'da "Analiz Et" butonuna basar.
+
+  [2] Tarayıcı: POST /api/Analiz/anlik/5
+      Header: Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+
+  [3] ASP.NET: JWT doğrulanır → KullaniciId = 12 alınır.
+
+  [4] Veritabanı: Lokasyon 5 sorgulanır, KullaniciId=12 doğrulanır.
+      Sonuç: Bitlis / Merkez, Enlem=38.40, Boylam=42.11, Ürün=Buğday
+
+  [5] SQL Önbellek: HavaVerileri WHERE LokasyonId=5 AND Tarih=bugün
+      → Bugün için kayıt yok. Open-Meteo'ya istek yapılacak.
+
+  [6] Open-Meteo API:
+      GET api.open-meteo.com/v1/forecast?latitude=38.40&longitude=42.11&...
+      Yanıt: max=24°C, min=8°C, yağış=0mm, rüzgar=15km/s, nem=52%
+      → SQL Server'a kaydedilir (sonraki 24 saat için önbellek)
+
+  [7] FastAPI /predict isteği (MlService → Python):
+      POST localhost:8000/predict
+      Gövde: {max_sicaklik:24, min_sicaklik:8, yagis:0, ruzgar_hizi:15, nem:52}
+      [Python] scaler.transform → normalize edilmiş dizi
+      [Python] rf.predict() → "güvenli"
+      [Python] rf.predict_proba() → [0.78, 0.10, 0.12]
+      [Python] risk_skoru = 0.10 + 0.12 = 0.22 → GÜVENLİ
+      Yanıt: {sinif:"güvenli", risk_skoru:0.22, seviye:"GUVENLI", renk:"yesil"}
+
+  [8] FastAPI /anomaly isteği (paralel değil, sıralı):
+      POST localhost:8000/anomaly
+      [Python] isolation_forest.predict() → 1 (normal)
+      Yanıt: {durum:"normal", skor:0.05, guvenilir:true}
+
+  [9] 7 günlük yağış tahmini alınır (sulama önerisi için).
+
+  [10] Türkçe tavsiye metni oluşturulur:
+       "✅ Bitlis, Merkez — Buğday için bugün belirgin bir risk yok.
+       Hava ılıman (24°C). Rutin bakım planınızı sürdürebilirsiniz.
+       ── Sulama ve yağış (5 günlük tahmin) ──
+       Önümüzdeki 5 günlük yağış: Sal 6.05: 0 mm · Çar 7.05: 2.1 mm ..."
+
+  [11] Oneri tablosuna kaydedilir:
+       RiskSkoru=0.22, RiskTipi="Güvenli", TavsiyeMetni=..., LokasyonId=5
+
+  [12] risk_skoru < 0.70 ve anomali yok → Telegram bildirimi GÖNDERİLMEZ.
+
+  [13] HTTP 200 yanıtı (JSON, ~500ms toplam süre):
+       {riskSkoru:0.22, riskTipi:"Güvenli", mlKullanildi:true,
+        urunAdi:"Buğday", tavsiyeMetni:"...", havaVerisi:{...}, ...}
+
+  [14] Dashboard güncellenir:
+       Yeşil risk göstergesi, %22, tavsiye metni, hava değerleri.
+
+Kritik risk senaryosu farkı (adım 12):
+  Eğer risk_skoru > 0.70 VEYA anomali tespit edilseydi:
+  → TelegramService.MesajGonderAsync() çağrılır (fire-and-forget)
+  → "⛔ Akıllı Tarım — Kritik risk! 🌾 Buğday · Bitlis, Merkez
+     🌡 -3–8°C  📊 Risk: Kritik (%85)
+     ❄️ Don tehlikesi! Hassas bitkilerinizi örtün..."
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 11 — BİLDİRİM SİSTEMİ DETAYLARI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+E-POSTA BİLDİRİMLERİ:
+
+  1. Kayıt Doğrulama Maili
+     Tetikleyici: Yeni kullanıcı kaydı
+     İçerik: HTML e-posta, büyük boyutlu 6 haneli kod, 60 sn geçerlilik
+     Amaç: Sahte e-posta ile kayıt önleme
+
+  2. Şifre Değişikliği Onay Linki
+     Tetikleyici: Kullanıcı yeni şifre talep eder
+     İçerik: Onay linki (URL token, 1 saat geçerli)
+     Amaç: Hesaba yetkisiz erişimde şifre değiştirilmesini önleme
+
+  3. Şifre Sıfırlama Kodu
+     Tetikleyici: "Şifremi Unuttum" akışı
+     İçerik: HTML e-posta, büyük boyutlu 6 haneli kod, 60 sn geçerlilik
+
+TELEGRAM BİLDİRİMLERİ:
+
+  1. Anlık Kritik Uyarı
+     Tetikleyici: Analiz sonucu KRİTİK seviyesi VEYA anomali tespiti
+     İçerik örneği:
+       ⛔ Akıllı Tarım — Kritik risk!
+       🌾 Buğday · Merkez, Bitlis
+       🌡 -3–8°C  💧 %65
+       📊 Risk: Kritik (%85)
+       ❄️ Don tehlikesi (-3°C)! Hassas bitkilerinizi örtün, sabah erken kontrol edin.
+
+  2. Günlük Sabah Raporu (08:00 — BackgroundService)
+     Tetikleyici: Her sabah belirtilen saatte (konfigüre edilebilir)
+     İçerik: Tüm tarlalar için özet
+       🌅 Günlük Tarım Raporu — 9 Mayıs 2026
+       Merhaba Ahmet Yılmaz!
+
+       ✅ Buğday · Merkez, Bitlis
+       🌡 8–24°C  💧 %52
+       📊 Risk: Güvenli (%22) (ML)
+       Koşullar normal. Rutin bakım ve sulamaya devam edebilirsiniz.
+
+       ⚠️ Mısır · Tatvan, Bitlis
+       🌡 6–28°C  💧 %30  🌧 0 mm
+       📊 Risk: Uyarı (%48) (ML)
+       Nem biraz düşük (%30). Mısır toprağını yoklayın; kuruyorsa sulayın.
+       ─────────────────
+       Detaylı analiz ve 7 günlük tahmin için Akıllı Tarım uygulamasını açın.
+
+  3. Telegram Bağlama Onay Mesajı
+     ✅ Hesabınız başarıyla bağlandı!
+     Merhaba Ahmet Yılmaz! Artık tarlalarınızda kritik risk
+     oluştuğunda Telegram üzerinden bildirim alacaksınız.
+
+TELEGRAM HESAP BAĞLAMA AKIŞI:
+  1. Kullanıcı "Telegram'ı Bağla" tıklar → Backend 30 dk geçerli token üretir
+  2. https://t.me/BOTADI?start=TOKEN deep-link döner
+  3. Kullanıcı linki açar → Telegram uygulaması açılır
+  4. "Başlat" butonuna basar → Bot /start TOKEN alır
+  5. TelegramWebhookController → token doğrulanır → ChatId kaydedilir
+  6. Bot "Hesabınız bağlandı" mesajı gönderir
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 12 — HAVA VERİSİ VE ÖNBELLEKLEME STRATEJİSİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Open-Meteo API Özellikleri:
+  URL: https://api.open-meteo.com/v1/forecast
+  Parametreler (kişisel tarla analizi için):
+    latitude, longitude   → GPS koordinatları
+    daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max
+    hourly=relativehumidity_2m
+    timezone=Europe/Istanbul
+    forecast_days=1 (bugün) veya 7 (tahmin)
+
+Nem hesabı:
+  API saatlik nem verisi döner (24 değer). Sistem 24 saatin ortalamasını
+  tek bir günlük nem değerine dönüştürür.
+
+İKİ KATMANLI ÖNBELLEKLEME:
+
+  Katman 1: SQL Server (kişisel tarlalar)
+    • Her lokasyon için günde 1 kez API çağrısı yapılır
+    • Çekilen veri HavaVerisi tablosuna kaydedilir
+    • Aynı gün içinde ikinci analizde doğrudan DB'den okunur
+    • taze=true parametresi ile bugünkü kayıt silinip yeniden çekilir
+    • 7 günlük tahmin için: API her çağrıda yeniden çekilir (DB'ye kaydedilmez)
+
+  Katman 2: IMemoryCache (81 il haritası)
+    • 81 il hava + risk verisi 30 dakika bellekte saklanır
+    • Tüm kullanıcılar aynı önbellekten yararlanır
+    • taze=true ile önbellek temizlenip yeniden hesaplanır
+    • 81 il için her seferinde 81 API çağrısı yapmak yerine 30 dk'da bir
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 13 — TAVSIYE METNİ ÜRETME MANTIĞI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Proje salt "risk: yüksek" demez; kullanıcıya ne yapması gerektiğini söyler.
+Tavsiye metni oluşturma 3 farklı durumda çalışır:
+
+1. KRİTİK SEVİYE:
+   "⛔ {konum} — {ürün} için bugün risk yüksek. {risk etkenleri}
+   Ekim, ilaçlama ve makine işlerini bugün erteleyin. Yarın tekrar bakın."
+
+2. UYARI SEVİYESİ:
+   "⚠️ {konum} — {ürün} için dikkat gerektiren koşullar var. {risk etkenleri}
+   Tarlayı gözlemleyin; hava durumu netleşince karar verin."
+
+3. GÜVENLİ SEVİYE (GuvenliTavsiyeMetni — en kapsamlı):
+   • Hava durumuna göre farklı açılış cümlesi:
+     - Yağışlı: "Hava yağışlı (12.5 mm yağış)"
+     - Sıcak: "Hava sıcak (35°C)"
+     - Serin: "Hava serin (7°C)"
+     - Normal: "Hava ılıman (22°C)"
+   • Yağışa göre sulama önerisi:
+     - ≥10 mm: "Yağış var; bugün sulama yapmayın"
+     - 3-10 mm: "Hafif yağış; toprağı yoklayın"
+     - 0: Sıcaklık ve neme göre kişisel sulama tavsiyesi
+   • Rüzgara göre ilaçlama uyarısı (>25 km/s)
+   • Ürüne özel nem tavsiyeleri
+
+Risk etkenleri listesi (her etken ayrı madde):
+  ❄️ Don tehlikesi — gece sıcaklığı -3°C. Çiçekli veya meyveli bitkilerinizi örtün...
+  🌡️ Kavurucu sıcak — bugün 42°C. Öğle saatlerinde tarlada çalışmayın...
+  🌧️ Yoğun yağış — 45 mm yağdı. Tarlaya traktörle girmeyin...
+  🏜️ Hava çok kuru — nem %18, yağış yok. Toprağınızı kontrol edin...
+  💨 Kuvvetli rüzgar — 75 km/s. İlaçlama ve gübre sıkma yapmayın...
+  🌿 Buğday için hava fazla sıcak — 31°C (üst sınır ~28°C). Sulamayı artırın...
+  💧 Buğday susuz kalıyor olabilir — nem %28 (ideal %40 üzeri)...
+  🍄 Hastalık riski — nem çok yüksek (%92). Yaprakları kontrol edin...
+  📅 Mevsim hatırlatması — Mayıs ayındasınız; Buğday için tipik ekim: Ekim, Kasım...
+  🔬 Bu konum için olağandışı hava koşulları tespit edildi.
+
+5 Günlük Sulama Önerisi (ürüne göre özelleştirilmiş):
+  Buğday/Arpa:  <5mm → "Sulama gerekebilir"; 5-20mm → "Toprağı kontrol et"; >20mm → "Yeter"
+  Mısır:        Sıcakta az yağış → "Sulamayı aksatmayın"
+  Diğer ürünler: Nem ve yağış bazlı genel tavsiye
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 14 — API ENDPOİNT'LERİ TAM LİSTESİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[AUTH GEREKTIRMEZ]
+  POST /api/Auth/kayit                  Yeni kullanıcı kaydı
+  POST /api/Auth/giris                  Giriş → JWT döner
+  POST /api/Auth/email-dogrula          6 haneli kodu doğrula, hesabı aktifleştir
+  POST /api/Auth/email-dogrulama-yenile Onay kodunu yeniden gönder
+  POST /api/Auth/sifremi-unuttum        Şifre sıfırlama kodu gönder
+  POST /api/Auth/sifre-sifirla          Yeni şifreyi kaydet (kod + yeni şifre)
+  GET  /api/Urun                        Ürün listesi (dropdown için)
+  GET  /api/Sistem/durum                ML sağlık durumu
+  POST /api/telegram/webhook            Telegram bot webhook (bot API'si kullanır)
+
+[JWT GEREKTIRIR]
+  GET  /api/Auth/profil                 Profil bilgileri
+  PUT  /api/Auth/profil                 Profil güncelle
+  POST /api/Auth/sifre-degistir         Şifre değişikliği başlat
+  POST /api/Auth/sifre-degistir-onay-yenile Onay mailini yeniden gönder
+  GET  /api/Auth/telegram/baglama-linki Telegram deep-link üret
+  PUT  /api/Auth/telegram               Chat ID kaydet/kaldır
+  POST /api/Auth/telegram/test          Test mesajı gönder
+  POST /api/Auth/telegram/test-gunluk   Günlük raporu şimdi gönder
+
+  GET  /api/Lokasyon                    Tarlalarım listesi
+  POST /api/Lokasyon                    Yeni tarla ekle
+  PUT  /api/Lokasyon/{id}               Tarla güncelle
+  DELETE /api/Lokasyon/{id}             Tarla sil
+  PUT  /api/Lokasyon/{id}/urun          Tarlaya ürün ata
+
+  POST /api/Analiz/anlik/{lokasyonId}?taze=false   Anlık ML analizi
+  POST /api/Analiz/tahmin/{lokasyonId}              7 günlük tahmin
+
+  GET  /api/Oneri/gecmis               Son 30 günün analizleri
+  DELETE /api/Oneri/{id}               Analiz kaydı sil
+
+  GET  /api/SehirRisk/bugday?taze=false 81 il buğday risk haritası
+
+[MVC VIEWS — HTML sayfaları]
+  GET /                        → /Home/Index yönlendirme
+  GET /Home/Index              Ana sayfa
+  GET /Home/Login              Giriş sayfası
+  GET /Home/Kayit              Kayıt sayfası
+  GET /Home/Dashboard          Ana panel
+  GET /Home/Lokasyonlar        Tarlalar + harita
+  GET /Home/OneriGecmisi       Analiz geçmişi
+  GET /Home/Hesabim            Profil + Telegram
+  GET /Home/SehirRiskAnalizi   81 il risk haritası
+  GET /Home/SifreSifirla       Şifre sıfırlama sayfası
+  GET /Home/SifreEmailOnay     Şifre değişikliği e-posta onayı
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 15 — PROJENİN GÜÇLÜ YÖNLERİ VE KISITLAMALARI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GÜÇLÜ YÖNLER:
+
+1. Çok Katmanlı ML Yaklaşımı
+   Tek bir model yerine üç farklı model birlikte kullanılır:
+   Anomali tespiti (Isolation Forest) + sınıflandırma (Random Forest) +
+   tahmin (LSTM). Her model farklı bir soruyu yanıtlar.
+
+2. Graceful Degradation (Zarif Bozunma)
+   ML servisi kapalıysa sistem çökmez. Kural tabanlı hesap devreye girer
+   ve kullanıcıya bu bilgi iletilir. Yüksek kullanılabilirlik.
+
+3. Gerçek Zamanlı ve Ücretsiz Hava Verisi
+   Open-Meteo API anahtarı gerektirmez, ücretsizdir ve GPS bazlı çalışır.
+   Her tarlaya özel koordinat ile hassas veri elde edilir.
+
+4. Çift Katmanlı Önbellekleme
+   SQL Server + IMemoryCache kombinasyonu gereksiz API çağrılarını engeller.
+   Aynı gün içinde tekrar analiz yapılırsa hava verisi anında döner.
+
+5. Kapsamlı Güvenlik Mimarisi
+   BCrypt + JWT + 2 aşamalı şifre onayı + token süre sınırları +
+   webhook secret token + kullanıcı izolasyonu + HSTS.
+
+6. Gerçek Tarımsal Değer
+   Tavsiyeler "risk: yüksek" gibi soyut değil; "don tehlikesi: bitkilerinizi
+   örtün, sabah erken kontrol edin" gibi eyleme geçirilebilir metinler içerir.
+
+7. Türkiye Özelinde Tasarım
+   81 ilin koordinatları hardcoded. Türkçe arayüz ve bildirimler.
+   Türkiye'ye özgü ürünler (buğday, arpa, pamuk, ayçiçeği).
+
+8. Ölçeklenebilir Mimari
+   ML servisi bağımsız process olduğu için bağımsız ölçeklendirilebilir.
+   Yeni ML modeli eklemek mevcut sistemi bozmaz.
+
+SINIRLAMALAR VE GELECEK GELİŞTİRMELER:
+
+1. LSTM Modeli Bitlis Spesifik
+   Mevcut LSTM modeli Bitlis ili verisiyle eğitilmiştir. Diğer iller için
+   özelleştirilmiş model veya daha genel bir model eğitimi gereklidir.
+
+2. Eğitim Verisi Şeffaflığı
+   ML modellerinin hangi veriyle eğitildiği (tarih aralığı, kaynak, doğruluk
+   metrikleri) dokümantasyona eklenmemiştir. Raporda belirtilmesi önerilir.
+
+3. Ürün Çeşitliliği
+   6 ürün ile sınırlı. Sebze, meyve, endüstriyel bitkiler eklenebilir.
+
+4. Mobil Uygulama
+   Şu an yalnızca web arayüzü. React Native veya Flutter ile mobil uygulama
+   özellikle çiftçiler için daha erişilebilir olurdu.
+
+5. Toprak Nemi Sensörü Entegrasyonu
+   Sistem hava verisi kullanır; toprak nemi ölçümü IoT sensörlerle yapılabilir.
+
+6. Geçmiş Veritabanı Analizi
+   Kullanıcı verimliliğini takip etmek için ürün verimi / kayıp raporlama
+   eklenebilir.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 16 — RAPOR/SUNUM İÇİN HAZIR KULLANIM BLOKLARI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROJE TANIM CÜMLESİ (tek cümle):
+"Akıllı Tarım Karar Sistemi, GPS koordinatlı hava verisi ve makine
+öğrenmesi algoritmaları kullanarak çiftçilere anlık tarımsal risk analizi
+ve Türkçe tarım tavsiyesi sunan, Telegram ile entegre bir web platformudur."
+
+ÖZET PARAGRAF (raporun girişi için):
+"Bu proje, Türkiye'deki çiftçilerin tarımsal kararlarını veri temelli
+hale getirmek amacıyla geliştirilmiştir. ASP.NET Core 8 ile geliştirilen
+web uygulaması, Python FastAPI üzerinde çalışan ayrı bir makine öğrenmesi
+servisi ile iletişim kurarak anlık risk analizi yapar. Sistem, Open-Meteo'nun
+ücretsiz API'si üzerinden GPS bazlı gerçek zamanlı hava verisi çeker ve bu
+veriyi Random Forest (risk sınıflandırma), Isolation Forest (anomali tespiti)
+ve LSTM (zaman serisi tahmini) modelleriyle işler. Kullanıcılar tarlalarını
+Leaflet haritasından seçer, ürün atar ve tek tıkla ürünleri ve konumları
+için özelleştirilmiş Türkçe tarım tavsiyesi alır. Telegram entegrasyonu ile
+kritik riskler anında bildirilir."
+
+TEKNOLOJİ YIĞINı (sunum slaytı için):
+  Backend  : C# / ASP.NET Core 8 / Entity Framework Core 9 / SQL Server
+  ML       : Python / FastAPI / scikit-learn / TensorFlow-Keras
+  Frontend : Razor Views / Bootstrap 5 / Leaflet.js / Fetch API
+  Güvenlik : JWT / BCrypt / 2FA E-posta / Telegram Webhook Secret
+  Harici   : Open-Meteo API / Telegram Bot API / SMTP
+
+ML MODELLERİ ÖZETİ (tablo formatı):
+  ┌───────────────────┬──────────────────┬──────────────────────────────┐
+  │ Model             │ Tür              │ Görevi                       │
+  ├───────────────────┼──────────────────┼──────────────────────────────┤
+  │ Isolation Forest  │ Gözetimsiz ML    │ Olağandışı hava tespiti      │
+  │ Random Forest     │ Sınıflandırıcı   │ Risk seviyesi belirleme      │
+  │ LSTM              │ Derin öğrenme    │ 7 günlük sıcaklık tahmini    │
+  │ StandardScaler    │ Ön işleme        │ Feature normalizasyonu        │
+  └───────────────────┴──────────────────┴──────────────────────────────┘
+
+GÜVENLİK ÖNLEMLERİ LİSTESİ (sunum için):
+  ✓ BCrypt şifre hash (salt + yavaş algoritma)
+  ✓ JWT kimlik doğrulama (1 saat süreli)
+  ✓ E-posta 2 aşamalı doğrulama
+  ✓ 2 aşamalı şifre değişikliği (e-posta onayı zorunlu)
+  ✓ Kriptografik tek kullanımlık tokenlar (256 bit)
+  ✓ SQL Injection koruması (EF Core parametrik sorgu)
+  ✓ Kullanıcı veri izolasyonu (IDOR önleme)
+  ✓ Telegram webhook secret token doğrulama
+  ✓ API rate limiting (SemaphoreSlim)
+  ✓ HSTS üretim ortamında aktif
+  ✓ Swagger yalnızca geliştirme ortamında
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 17 — PROJE KONFİGÜRASYON BİLGİLERİ (Deployment için)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+appsettings.json yapısı (hassas değerler gizlidir):
+
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=...;Database=TarimSistemi;..."
+  },
+  "Jwt": {
+    "Key":      "[256 bit simetrik anahtar]",
+    "Issuer":   "TarimSistemi",
+    "Audience": "TarimSistemiUsers"
+  },
+  "Email": {
+    "SmtpHost":      "smtp.gmail.com",
+    "SmtpPort":      587,
+    "SmtpUser":      "[e-posta adresi]",
+    "SmtpPassword":  "[uygulama şifresi]",
+    "PublicBaseUrl": "https://[domain]"
+  },
+  "FastApi": {
+    "BaseUrl": "http://localhost:8000"
+  },
+  "Telegram": {
+    "BotToken":            "[botfather token]",
+    "BotUsername":         "[bot kullanıcı adı]",
+    "WebhookBaseUrl":      "https://[domain]",
+    "WebhookSecretToken":  "[rastgele güvenli string]",
+    "GunlukBildirimSaati": "8"
+  }
+}
+
+Çalıştırma gereksinimleri:
+  • .NET 8 SDK (backend)
+  • Python 3.9+ (ML servisi)
+  • SQL Server (veritabanı)
+  • İnternete erişim (Open-Meteo, Telegram API)
+
+Başlatma sırası:
+  1. cd ml_service && pip install -r requirements.txt && uvicorn main:app --port 8000
+  2. cd backend-aspnet/TarimSistemi && dotnet run
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BÖLÜM 18 — PROJE KLASÖR YAPISI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+akilli-tarim-karar-sistemi/
+│
+├── ml_service/                          [Python FastAPI ML uygulaması]
+│   ├── main.py                          Ana uygulama + 3 endpoint
+│   └── models/
+│       ├── isolation_forest.pkl         Anomali tespiti modeli
+│       ├── random_forest.pkl            Risk sınıflandırma modeli
+│       ├── scaler.pkl                   RF+IF için normalizasyon
+│       ├── label_encoder.pkl            Sınıf etiketleri
+│       ├── lstm_model.keras             LSTM zaman serisi modeli
+│       └── lstm_scaler.pkl              LSTM için ayrı normalizasyon
+│
+└── backend-aspnet/TarimSistemi/TarimSistemi/
+    │
+    ├── Program.cs                       DI kaydı, middleware, başlangıç
+    ├── TarimSistemi.csproj              Paket bağımlılıkları
+    │
+    ├── Controllers/
+    │   ├── HomeController.cs            MVC view yönlendirmeleri
+    │   ├── AuthController.cs            Kimlik doğrulama + Telegram
+    │   ├── AnalizController.cs          Anlık analiz + 7 günlük tahmin
+    │   ├── LokasyonController.cs        Tarla CRUD
+    │   ├── UrunController.cs            Ürün listesi
+    │   ├── OneriController.cs           Analiz geçmişi
+    │   ├── SistemController.cs          ML sağlık durumu
+    │   ├── SehirRiskController.cs       81 il buğday haritası
+    │   └── TelegramWebhookController.cs Bot komut işleme
+    │
+    ├── Services/
+    │   ├── AuthService.cs               JWT, BCrypt, e-posta token akışları
+    │   ├── HavaService.cs               Open-Meteo + SQL Server önbellek
+    │   ├── MlService.cs                 FastAPI HTTP proxy + DTO'lar
+    │   ├── TelegramService.cs           Bot API mesaj/webhook/getMe
+    │   ├── GunlukBildirimServisi.cs     BackgroundService zamanlayıcı
+    │   ├── SmtpEmailGonderici.cs        SMTP e-posta gönderme
+    │   └── IEmailGonderici.cs           E-posta arayüzü (DI için)
+    │
+    ├── Models/
+    │   ├── Kullanici.cs                 Kullanıcı entity (token alanları dahil)
+    │   ├── Lokasyon.cs                  Tarla entity (GPS koordinatlı)
+    │   ├── HavaVerisi.cs                Hava verisi entity
+    │   ├── UrunBilgisi.cs               Ürün entity (ideal koşullar)
+    │   ├── Oneri.cs                     Analiz sonucu entity
+    │   ├── KullaniciGeriBildirim.cs     Geri bildirim entity
+    │   └── KullaniciProfilDto.cs        Profile API yanıt modeli
+    │
+    ├── Data/
+    │   ├── TarimDbContext.cs            EF Core DbContext + fluent config
+    │   └── DbInitializer.cs            Başlangıç ürün seed verisi
+    │
+    ├── Configuration/
+    │   └── EmailAyarlari.cs            SMTP konfigürasyon modeli
+    │
+    └── Views/Home/
+        ├── _Layout.cshtml              Ana şablon (global JWT token)
+        ├── Index.cshtml               Ana sayfa
+        ├── Login.cshtml               Giriş + doğrulama + şifre sıfırlama
+        ├── Kayit.cshtml               Kayıt formu
+        ├── Dashboard.cshtml           Ana panel (analiz + tahmin)
+        ├── Lokasyonlar.cshtml         Leaflet haritası + tarla yönetimi
+        ├── OneriGecmisi.cshtml        Geçmiş analizler tablosu
+        ├── Hesabim.cshtml             Profil + şifre + Telegram
+        ├── SehirRiskAnalizi.cshtml    Türkiye 81 il haritası
+        ├── SifreSifirla.cshtml        Şifre sıfırlama formu
+        └── OnaySonuc.cshtml           E-posta onay sonuç sayfası
+
+══════════════════════════════════════════════════════════════════════════════
+BU DOSYANIN SONU — Tüm teknik detaylar yukarıda eksiksiz verilmiştir.
+Rapor/sunum hazırlarken Bölüm 16'daki hazır kullanım bloklarından
+doğrudan yararlanabilirsiniz.
+══════════════════════════════════════════════════════════════════════════════

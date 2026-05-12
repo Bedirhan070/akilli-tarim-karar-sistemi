@@ -505,17 +505,21 @@
             const score = data.riskSkoru ?? 0;
             const badge = document.getElementById('riskBadge');
             badge.className = 'risk-badge mb-3';
+            let displayScore;
             if (score > 0.70) {
                 badge.classList.add('kritik');
                 document.getElementById('riskLabel').textContent = 'KRİTİK RİSK';
+                displayScore = Math.round(score * 100) + '%';
             } else if (score > 0.40) {
                 badge.classList.add('uyari');
                 document.getElementById('riskLabel').textContent = 'ORTA RİSK';
+                displayScore = Math.round(score * 100) + '%';
             } else {
                 badge.classList.add('guvenli');
                 document.getElementById('riskLabel').textContent = 'GÜVENLİ';
+                displayScore = (100 - Math.round(score * 100)) + '%';
             }
-            document.getElementById('riskScore').textContent = (score * 100).toFixed(0) + '%';
+            document.getElementById('riskScore').textContent = displayScore;
             document.getElementById('sonGuncelleme').textContent = new Date().toLocaleTimeString('tr-TR');
 
             riskEtkenleriniGoster(data.riskEtkenleri);
