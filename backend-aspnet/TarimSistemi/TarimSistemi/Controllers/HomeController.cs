@@ -73,6 +73,27 @@ namespace TarimSistemi.Controllers
             return View();
         }
 
+        // GET: /Home/AnlikAnaliz
+        [Authorize]
+        public IActionResult AnlikAnaliz()
+        {
+            return View();
+        }
+
+        // GET: /Home/HaftalikTahmin
+        [Authorize]
+        public IActionResult HaftalikTahmin()
+        {
+            return View();
+        }
+
+        // GET: /Home/Bildirimler
+        [Authorize]
+        public IActionResult Bildirimler()
+        {
+            return View();
+        }
+
         // GET: /Home/SehirRiskAnalizi
         [Authorize]
         public IActionResult SehirRiskAnalizi()

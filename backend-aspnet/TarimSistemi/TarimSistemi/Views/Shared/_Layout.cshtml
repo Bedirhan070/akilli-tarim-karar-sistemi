@@ -28,7 +28,7 @@
 
         #sidebar {
             width: 268px;
-            min-height: 100vh;
+            height: 100vh;
             background: linear-gradient(180deg, var(--sidebar-bg1) 0%, var(--sidebar-bg2) 45%, #1e4034 100%);
             position: fixed;
             top: 0;
@@ -36,6 +36,7 @@
             z-index: 1000;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
             box-shadow: 4px 0 24px rgba(10, 30, 22, 0.18);
             transition: transform 0.28s ease, box-shadow 0.28s ease;
         }
@@ -154,6 +155,7 @@
         .sidebar-footer {
             padding: 14px 14px 20px;
             border-top: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
         }
 
         .sidebar-footer .nav-link {
@@ -358,11 +360,11 @@
             </a>
 
             <div class="nav-section-title">Analiz</div>
-            <a href="/Home/Dashboard#analiz-anlik" id="navDashAnlik" class="nav-link nav-dash-sub">
+            <a href="/Home/AnlikAnaliz" id="navDashAnlik" class="nav-link nav-dash-sub @(ViewData["ActivePage"]?.ToString() == "anlikanaliz" ? "active" : "")">
                 <i class="fas fa-bolt mt-1 text-warning"></i>
                 <span>Bugünkü risk<small class="d-block" style="font-size:0.68rem;">Hava + ürün, anında skor</small></span>
             </a>
-            <a href="/Home/Dashboard#analiz-tahmin" id="navDashTahmin" class="nav-link nav-dash-sub">
+            <a href="/Home/HaftalikTahmin" id="navDashTahmin" class="nav-link nav-dash-sub @(ViewData["ActivePage"]?.ToString() == "haftaliktahmin" ? "active" : "")">
                 <i class="fas fa-cloud-sun mt-1 text-info"></i>
                 <span>7 günlük tahmin<small class="d-block" style="font-size:0.68rem;">Haftalık hava ve risk özeti</small></span>
             </a>
@@ -379,7 +381,7 @@
             </a>
 
             <div class="nav-section-title">Ayarlar</div>
-            <a href="/Home/Hesabim#telegram" id="navTelegram" class="nav-link @(ViewData["ActivePage"]?.ToString() == "hesap" ? "active" : "")">
+            <a href="/Home/Bildirimler" id="navTelegram" class="nav-link @(ViewData["ActivePage"]?.ToString() == "bildirimler" ? "active" : "")">
                 <i class="fab fa-telegram-plane mt-1" style="color:#229ED9;"></i>
                 <span>Bildirimler<small class="d-block" style="font-size:0.68rem;">Telegram ayarları</small></span>
             </a>

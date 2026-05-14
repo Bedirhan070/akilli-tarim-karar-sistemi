@@ -5,6 +5,7 @@ import pandas as pd
 import joblib
 import os
 from keras.models import load_model
+from risk_utils import risk_seviyesi_hesapla
 
 # ==========================================
 # UYGULAMA VE MODEL YUKLE
@@ -103,15 +104,7 @@ def risk_tahmini(veri: HavaVerisi):
         risk_skoru = proba_dict.get("riskli", 0) + \
                      proba_dict.get("uygun_degil", 0)
 
-        if risk_skoru > 0.70:
-            seviye = "KRITIK"
-            renk   = "kirmizi"
-        elif risk_skoru > 0.40:
-            seviye = "ORTA"
-            renk   = "sari"
-        else:
-            seviye = "GUVENLI"
-            renk   = "yesil"
+        seviye, renk = risk_seviyesi_hesapla(risk_skoru)
 
         return {
             "sinif"      : label_encoder.inverse_transform([tahmin])[0],

@@ -1,0 +1,277 @@
+@{
+    ViewData["Title"] = "7 Günlük Tahmin";
+    ViewData["ActivePage"] = "haftaliktahmin";
+}
+
+<style>
+    .dash-page { max-width: 1420px; margin: 0 auto; }
+
+    .dash-hero {
+        background: linear-gradient(125deg, #e3f2fd 0%, #fff 42%, #f0f5ff 100%);
+        border: 1px solid #bbdefb;
+        border-radius: 18px;
+        padding: 22px 26px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(21,101,192,0.08);
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    .dash-hero-ikon {
+        width: 48px; height: 48px; border-radius: 12px;
+        background: #e3f2fd; color: #1565c0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem; flex-shrink: 0;
+    }
+    .dash-hero h1 { font-size: 1.45rem; font-weight: 800; color: #0d47a1; margin: 0 0 6px; }
+    .dash-hero-desc { margin: 0; color: #4a5a7a; font-size: 0.92rem; line-height: 1.5; max-width: 640px; }
+
+    .dash-toolbar {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px 20px;
+        border: 1px solid rgba(26,60,46,0.1);
+        box-shadow: 0 4px 22px rgba(20,40,30,0.06);
+        margin-bottom: 20px;
+    }
+    .dash-toolbar-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+    .dash-toolbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+    @@media (max-width: 576px) {
+        .dash-toolbar-actions { width: 100%; }
+        .dash-toolbar-actions #lokasyonSecim { width: 100%; max-width: none; }
+    }
+
+    #lokasyonSecim { border-radius: 10px; border: 2px solid #bbdefb; font-size: 0.9rem; font-weight: 600; min-width: 200px; max-width: 280px; }
+
+    .btn-tahmin {
+        background: linear-gradient(135deg, #1565c0, #42a5f5); border: none; color: white;
+        padding: 10px 22px; border-radius: 10px; font-weight: 800; letter-spacing: 0.02em;
+        transition: all 0.2s; box-shadow: 0 4px 14px rgba(21,101,192,0.35);
+    }
+    .btn-tahmin:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(33,150,243,0.45); color: white; }
+
+    .info-card { background: white; border-radius: 16px; padding: 20px 22px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 6px 22px rgba(20,40,30,0.06); }
+    .info-card h6 { font-weight: 800; color: #1a3a6e; border-bottom: 2px solid #e3f2fd; padding-bottom: 12px; margin-bottom: 16px; font-size: 0.95rem; }
+
+    .oneri-item { background: #f9f9f9; border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; border-left: 4px solid #4caf50; font-size: 0.87rem; color: #444; }
+    .oneri-item.uyari  { border-left-color: #ff9800; }
+    .oneri-item.kritik { border-left-color: #f44336; }
+    .oneri-tarih { font-size: 0.75rem; color: #aaa; margin-top: 4px; }
+
+    .placeholder-chart { background: #f5f5f5; border-radius: 8px; min-height: 120px; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 0.85rem; flex-direction: column; gap: 8px; padding: 16px; }
+
+    .tahmin-risk-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 0.78rem; }
+    .tahmin-risk-row .lbl { width: 88px; flex-shrink: 0; color: #666; font-weight: 600; }
+    .tahmin-risk-bar-wrap { flex: 1; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
+    .tahmin-risk-bar { height: 100%; border-radius: 5px; transition: width 0.35s ease; }
+    .tahmin-table th { font-size: 0.72rem; color: #888; }
+    .tahmin-table td { font-size: 0.8rem; vertical-align: middle; }
+    .pill-risk { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .pill-risk.dusuk  { background: #e8f5e9; color: #2e7d32; }
+    .pill-risk.uyari  { background: #fff8e1; color: #e65100; }
+    .pill-risk.kritik { background: #ffebee; color: #c62828; }
+</style>
+
+<div class="dash-page">
+
+    <div class="dash-hero">
+        <div class="dash-hero-ikon"><i class="fas fa-cloud-sun"></i></div>
+        <div>
+            <h1>7 Günlük Hava ve Risk Tahmini</h1>
+            <p class="dash-hero-desc">Tarlanızı seçin ve <strong>Tahmin Yükle</strong>'ye basın — önümüzdeki 7 güne ait hava durumu ve risk özeti görünür.</p>
+            <small class="text-dark fw-semibold d-block mt-2" id="seciliTarlaBaslik" style="font-size:0.86rem;"></small>
+        </div>
+    </div>
+
+    <div class="dash-toolbar">
+        <div class="dash-toolbar-inner">
+            <label for="lokasyonSecim" class="small text-muted fw-semibold mb-0 d-block d-md-inline me-md-2">Tarla</label>
+            <div class="dash-toolbar-actions flex-grow-1 justify-content-md-end">
+                <select class="form-select form-select-sm" id="lokasyonSecim">
+                    <option value="">-- Tarla seçin --</option>
+                </select>
+                <button type="button" class="btn btn-tahmin btn-sm" id="btnTahminYukle">
+                    <i class="fas fa-calendar-week me-1"></i>Tahmin Yükle
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+
+        <div class="col-md-8">
+            <div class="info-card">
+                <h6><i class="fas fa-chart-line me-2 text-primary"></i>7 Günlük Tahmin</h6>
+                <p class="small text-muted mb-2" id="tahminAciklama" style="display:none;"></p>
+                <div id="tahminPlaceholder" class="placeholder-chart mb-0">
+                    <i class="fas fa-cloud-sun fa-2x" style="opacity:0.3"></i>
+                    <span>Tarla seçip <strong>Tahmin Yükle</strong>'ye basın</span>
+                </div>
+                <div id="tahminIcerik" class="d-none">
+                    <div class="mb-3" id="tahminRiskChart"></div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover tahmin-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Gün</th>
+                                    <th>Tarih</th>
+                                    <th>Max/Min °C</th>
+                                    <th>Nem</th>
+                                    <th>Yağış</th>
+                                    <th>Risk</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tahminTabloBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="info-card">
+                <h6><i class="fas fa-history me-2 text-secondary"></i>Son Öneriler</h6>
+                <div id="sonOnerilerContainer">
+                    <div class="text-center text-muted py-3" style="font-size:0.85rem;">
+                        Henüz öneri bulunmuyor
+                    </div>
+                </div>
+                <a href="/Home/OneriGecmisi" class="btn btn-sm btn-outline-success w-100 mt-2">Tüm Geçmişi Gör</a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    const authHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+    };
+
+    let lokasyonCache = [];
+
+    function htmlEscape(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function guncelleSeciliTarlaBaslik() {
+        const lokId = document.getElementById('lokasyonSecim').value;
+        const el = document.getElementById('seciliTarlaBaslik');
+        if (!lokId) { el.textContent = ''; return; }
+        const lok = lokasyonCache.find(x => String(x.lokasyonId) === String(lokId));
+        if (!lok) return;
+        const ad = lok.isim || `${lok.sehir}${lok.ilce ? ' / ' + lok.ilce : ''}`;
+        el.textContent = 'Seçili tarla: ' + ad;
+    }
+
+    function tahminArayuzuSifirla() {
+        document.getElementById('tahminIcerik').classList.add('d-none');
+        document.getElementById('tahminPlaceholder').classList.remove('d-none');
+        document.getElementById('tahminAciklama').style.display = 'none';
+        document.getElementById('tahminRiskChart').innerHTML = '';
+        document.getElementById('tahminTabloBody').innerHTML = '';
+    }
+
+    function tahminVerisiniCiz(data) {
+        if (!data.tahminler || !data.tahminler.length) { tahminArayuzuSifirla(); return; }
+        document.getElementById('tahminPlaceholder').classList.add('d-none');
+        document.getElementById('tahminIcerik').classList.remove('d-none');
+        if (data.aciklama) {
+            const ack = document.getElementById('tahminAciklama');
+            ack.textContent = data.aciklama;
+            ack.style.display = 'block';
+        }
+        document.getElementById('tahminRiskChart').innerHTML = data.tahminler.map(t => {
+            const pct = Math.min(100, Math.round((Number(t.riskSkoru) || 0) * 100));
+            const cls = t.riskOzeti === 'Kritik' ? 'bg-danger' : t.riskOzeti === 'Uyarı' ? 'bg-warning' : 'bg-success';
+            return `<div class="tahmin-risk-row">
+                <span class="lbl text-capitalize">${t.gunAdi || ''}</span>
+                <div class="tahmin-risk-bar-wrap"><div class="tahmin-risk-bar ${cls}" style="width:${pct}%"></div></div>
+                <span class="text-muted" style="min-width:36px;">%${pct}</span>
+            </div>`;
+        }).join('');
+        document.getElementById('tahminTabloBody').innerHTML = data.tahminler.map(t => {
+            const rs = Number(t.riskSkoru) || 0;
+            const pill = t.riskOzeti === 'Kritik' ? 'kritik' : t.riskOzeti === 'Uyarı' ? 'uyari' : 'dusuk';
+            const maxmin = (t.sicaklikMax != null ? t.sicaklikMax : '—') + ' / ' + (t.sicaklikMin != null ? t.sicaklikMin : '—');
+            return `<tr>
+                <td class="text-capitalize">${t.gunAdi || ''}</td>
+                <td>${t.tarih || ''}</td>
+                <td>${maxmin}°C</td>
+                <td>${t.nem != null ? '%' + t.nem : '—'}</td>
+                <td>${t.yagis != null ? t.yagis + ' mm' : '—'}</td>
+                <td><span class="pill-risk ${pill}">${t.riskOzeti || '—'} (%${Math.round(rs * 100)})</span></td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function tahminYukle() {
+        const lokId = document.getElementById('lokasyonSecim').value;
+        if (!lokId) { alert('Önce tarla seçin'); return; }
+        const btn = document.getElementById('btnTahminYukle');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Yükleniyor...';
+        try {
+            const res = await fetch(`/api/Analiz/tahmin/${lokId}`, { method: 'POST', headers: authHeaders });
+            const data = await res.json();
+            if (!res.ok) { alert(data.message || 'Tahmin alınamadı'); return; }
+            tahminVerisiniCiz(data);
+        } catch (e) {
+            alert('Bağlantı hatası: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-calendar-week me-1"></i>Tahmin Yükle';
+        }
+    }
+
+    async function loadSonOneriler() {
+        try {
+            const res = await fetch('/api/Oneri/son', { headers: authHeaders });
+            if (!res.ok) return;
+            const data = await res.json();
+            const container = document.getElementById('sonOnerilerContainer');
+            if (!data.length) return;
+            container.innerHTML = '';
+            data.slice(0, 3).forEach(o => {
+                const seviye = o.riskSkoru > 0.70 ? 'kritik' : o.riskSkoru > 0.40 ? 'uyari' : '';
+                const urunEt = o.urunAdi ? `<span class="badge bg-light text-dark border me-1" style="font-size:0.68rem;">${htmlEscape(o.urunAdi)}</span>` : '';
+                container.innerHTML += `<div class="oneri-item ${seviye}">
+                    <div>${urunEt}${htmlEscape(o.tavsiyeMetni || 'Öneri metni yok')}</div>
+                    <div class="oneri-tarih">${new Date(o.olusturulmaZamani).toLocaleDateString('tr-TR')}</div>
+                </div>`;
+            });
+        } catch {}
+    }
+
+    async function loadLokasyonlar() {
+        try {
+            const res = await fetch('/api/Lokasyon', { headers: authHeaders });
+            if (!res.ok) return;
+            const data = await res.json();
+            lokasyonCache = data;
+            const sel = document.getElementById('lokasyonSecim');
+            sel.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
+            data.forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l.lokasyonId;
+                opt.textContent = l.isim || `${l.sehir} / ${l.ilce || ''}`.trim();
+                sel.appendChild(opt);
+            });
+        } catch {}
+    }
+
+    document.getElementById('lokasyonSecim').addEventListener('change', guncelleSeciliTarlaBaslik);
+    document.getElementById('btnTahminYukle').addEventListener('click', tahminYukle);
+
+    loadLokasyonlar();
+    loadSonOneriler();
+</script>
+}
